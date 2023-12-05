@@ -1,0 +1,69 @@
+###
+0000000    000   0000000   000        0000000    000   000  000000000  000000000   0000000   000   000
+000   000  000  000   000  000        000   000  000   000     000        000     000   000  0000  000
+000   000  000  000000000  000        0000000    000   000     000        000     000   000  000 0 000
+000   000  000  000   000  000        000   000  000   000     000        000     000   000  000  0000
+0000000    000  000   000  0000000    0000000     0000000      000        000      0000000   000   000
+###
+
+{ clamp, deg2rad, drag } = require 'kxk'
+
+CanvasButton = require './canvasbutton'
+
+class DialButton extends CanvasButton
+
+    @: (div, clss) ->
+    
+        super div, clss, vec(-4,4,6), vec(0,0,1).normal().mul 10
+        
+        @name = 'DialButton'
+        
+        @drag = new drag
+            target:  @canvas
+            onStart: @onDrag
+            onMove:  @onDrag
+        
+    dialChanged: (index) ->             
+    setDial: (index) -> 
+    
+        for dot in @dots
+            dot.material = Materials.menu.inactive
+            dot.scale.set 1 1 1
+        @dots[index].material = Materials.menu.active
+        @dots[index].scale.set 3 3 3
+        @update()
+
+    initCamera: ->
+
+        s = 5.5
+        @camera = new THREE.OrthographicCamera -s, s, s, -s, 1, 10
+        
+    initScene: ->
+        
+        super()
+        @initDots()
+        
+    initDots: ->
+        
+        @dots = []
+        for i in [-6..6]
+            geom = Geom.sphere radius:0.3
+            geom.rotateX deg2rad 90
+            p = vec(0,4,0).rotate vec(0,0,1), -i*22.5
+            mesh = new Mesh geom, Materials.menu.inactive
+            mesh.position.copy p
+            @dots.push mesh
+            @scene.add mesh
+        
+    onDrag: (drag, event) =>
+        
+        br = @canvas.getBoundingClientRect()
+        
+        ctr2Pos = vec(br.left+50, br.top+50, 0).to drag.pos
+        ctr2Pos.y = -ctr2Pos.y
+        angle = Math.sign(ctr2Pos.dot(vec 1,0,0)) * ctr2Pos.angle(vec 0,1,0)
+        sectn = clamp -6, 6, Math.round angle/22.5
+        @setDial     sectn+6
+        @dialChanged sectn+6
+        
+module.exports = DialButton

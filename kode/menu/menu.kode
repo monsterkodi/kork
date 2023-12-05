@@ -1,0 +1,63 @@
+###
+00     00  00000000  000   000  000   000
+000   000  000       0000  000  000   000
+000000000  0000000   000 0 000  000   000
+000 0 000  000       000  0000  000   000
+000   000  00000000  000   000   0000000
+###
+
+SpeedButton   = require './speedbutton'
+
+class Menu
+
+    @: ->
+
+        main =$ "#main"
+        @div = elem class:'buttons', style:"left:0px; top:0px"
+        main.appendChild @div
+
+        @mousePos = vec()
+        @buttons = {}
+            # speed: new SpeedButton   main
+
+        @div.addEventListener 'mouseenter' @onMouseEnter
+        @div.addEventListener 'mouseleave' @onMouseLeave
+        @div.addEventListener 'mousemove'  @onMouseMove
+        main.addEventListener 'mouseover'  @onMouseOver
+        main.addEventListener 'mouseout'   @onMouseOut
+        main.addEventListener 'mousedown'  @onMouseDown
+        main.addEventListener 'click'      @onClick
+
+    onClick:      (event) => @calcMouse event ; event.target.button?.click? event
+    onMouseOver:  (event) => @calcMouse event ; event.target.button?.highlight? event
+    onMouseOut:   (event) => @calcMouse event ; event.target.button?.unhighlight? event
+    onMouseDown:  (event) =>
+
+        @calcMouse event
+        event.target.button?.middleClick?(event) if event.button == 1
+        event.target.button?.rightClick?(event)  if event.button == 2
+
+    onMouseEnter: (event) =>
+
+    onMouseMove:  (event) =>
+
+        @calcMouse event
+        stopEvent event
+
+    onMouseLeave: (event) =>
+
+        @calcMouse event
+
+    calcMouse: (event) ->
+
+        br = @div.getBoundingClientRect()
+        @mousePos.x = event.clientX-br.left
+        @mousePos.y = event.clientY-br.top
+
+    animate: (delta) ->
+
+        for key,button of @buttons
+            # log key, button.name
+            button.animate delta
+
+module.exports = Menu

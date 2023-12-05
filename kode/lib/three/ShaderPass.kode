@@ -1,0 +1,61 @@
+{ ShaderMaterial, UniformsUtils } = require 'three'
+{ Pass, FullScreenQuad } = require './Pass'
+
+class ShaderPass extends Pass 
+
+    @: ( shader, textureID ) ->
+
+        super()
+
+        @textureID = ( textureID != undefined ) ? textureID : 'tDiffuse'
+
+        if shader instanceof ShaderMaterial
+
+            @uniforms = shader.uniforms
+
+            @material = shader
+
+        else if shader
+            
+            @uniforms = UniformsUtils.clone( shader.uniforms )
+
+            @material = new ShaderMaterial( {
+
+                name: ( shader.name != undefined ) ? shader.name : 'unspecified',
+                defines: Object.assign( {}, shader.defines ),
+                uniforms: @uniforms,
+                vertexShader: shader.vertexShader,
+                fragmentShader: shader.fragmentShader
+
+            } )
+
+        @fsQuad = new FullScreenQuad( @material )
+
+    render: ( renderer, writeBuffer, readBuffer ) ->
+
+        if @uniforms[ @textureID ]
+
+            @uniforms[ @textureID ].value = readBuffer.texture
+
+        @fsQuad.material = @material
+
+        if @renderToScreen
+
+            renderer.setRenderTarget( null )
+            @fsQuad.render( renderer )
+
+        else
+
+            renderer.setRenderTarget( writeBuffer )
+            # TODO: Avoid using autoClear properties, see https:#github.com/mrdoob/three.js/pull/15571#issuecomment-465669600
+            if @clear  
+                renderer.clear( renderer.autoClearColor, renderer.autoClearDepth, renderer.autoClearStencil )
+            @fsQuad.render( renderer )
+
+    dispose: () ->
+
+        @material.dispose()
+
+        @fsQuad.dispose()
+
+module.exports = ShaderPass

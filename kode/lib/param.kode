@@ -1,0 +1,39 @@
+###
+00000000    0000000   00000000    0000000   00     00  
+000   000  000   000  000   000  000   000  000   000  
+00000000   000000000  0000000    000000000  000000000  
+000        000   000  000   000  000   000  000 0 000  
+000        000   000  000   000  000   000  000   000  
+###
+
+function Param
+
+    @params: {}
+
+    @: (@name, @def, @cfg) ->
+        
+        @value = prefs.get @name, @def
+        @cfg.fixed ?= 1
+        @cfg.min ?= 0
+        
+        Param.params[@name] = @
+    
+    @resetAll: -> for name,param of @params ➜ @reset name
+    @applyAll: -> for name,param of @params ➜ @set name, param.value
+    @reset: (name) -> @set name, @params[name].def
+    @incr:  (name) -> @set name, @get(name) + @params[name].cfg.step
+    @decr:  (name) -> @set name, @get(name) - @params[name].cfg.step
+    
+    @set: (name, value) -> 
+    
+        param = @params[name]
+        param.value = clamp param.cfg.min, param.cfg.max, value
+        prefs.set param.name, param.value
+        post.emit 'paramChange' param
+        param.cfg.change? param.value
+        
+    @get: (name) ->
+        
+        @params[name].value
+        
+module.exports = Param

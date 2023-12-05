@@ -1,0 +1,232 @@
+###
+000   000   0000000   00000000   000      0000000  
+000 0 000  000   000  000   000  000      000   000
+000000000  000   000  0000000    000      000   000
+000   000  000   000  000   000  000      000   000
+00     00   0000000   000   000  0000000  0000000  
+###
+
+Construct      = require './construct'
+Physics        = require './physics'
+Player         = require '../player/player'
+Save           = require './save'
+
+function World extends Construct
+    
+    @: (@scene) ->
+        
+        super()
+        @init()
+                
+        window.world = @
+        
+        @animations = []
+        @labels     = []
+        @pickables  = []
+        @timeSum    = 0
+                    
+        @save       = new Save
+        @physics    = new Physics
+        @player     = new Player
+        
+        # @addFloor()
+        
+        @setLabels prefs.get 'labels' false
+        @setSpeed  Param.get 'speed'
+        
+        @addLabel text:"Hello" size:10 mono:true
+        # @setLabels true
+        
+        @addObject @player.mesh
+        
+        @addMesh @meshes.landscape
+        
+        rts.playerCamera.setPlayer @player
+        
+    addLabel: (cfg) ->
+        
+        label = new Text()
+        label.text = cfg.text
+        label.fontSize = cfg.size ? 1
+        label.font = '../pug/' + (cfg.mono ? 'Meslo.woff' : 'Bahnschrift.woff')
+        label.position.copy vec cfg.position ? 0
+        label.color = cfg.color ? 0x9966FF
+        label.anchorX = 'center'
+        label.anchorY = 'middle'
+        label.noHitTest = true
+        label.depthOffset = -0.1
+        label.visible = @getLabels()
+        label.sync()
+        @labels.push label
+        label
+        
+    toggleLabels: => @setLabels not @getLabels()
+    getLabels: => prefs.get 'labels'
+    setLabels: (on=true) =>
+        prefs.set 'labels' on
+        for label in @labels
+            label.visible = on
+                
+    #  0000000   000   000  000  00     00   0000000   000000000  00000000  
+    # 000   000  0000  000  000  000   000  000   000     000     000       
+    # 000000000  000 0 000  000  000000000  000000000     000     0000000   
+    # 000   000  000  0000  000  000 0 000  000   000     000     000       
+    # 000   000  000   000  000  000   000  000   000     000     00000000  
+    
+    addAnimation: (func) ->
+        
+        @animations.push func
+        
+    removeAnimation: (func) ->
+        
+        if (index = @animations.indexOf func) >= 0
+            @animations.splice index, 1
+            
+    animate: (delta) ->
+
+        ▴ delta > 0
+        scaledDelta = delta * @speed
+        @timeSum += scaledDelta
+        
+        oldAnimations = @animations.clone()
+        @animations = []
+        for animation in oldAnimations
+            animation scaledDelta, @timeSum
+        
+        @physics.simulate scaledDelta, @timeSum
+        
+        @player.animate scaledDelta, delta
+                
+    create: ->
+        
+    #  0000000  000      00000000   0000000   00000000   
+    # 000       000      000       000   000  000   000  
+    # 000       000      0000000   000000000  0000000    
+    # 000       000      000       000   000  000   000  
+    #  0000000  0000000  00000000  000   000  000   000  
+    
+    clear: ->
+        
+        @physics.clear()
+                                  
+    #  0000000  00000000   00000000  00000000  0000000    
+    # 000       000   000  000       000       000   000  
+    # 0000000   00000000   0000000   0000000   000   000  
+    #      000  000        000       000       000   000  
+    # 0000000   000        00000000  00000000  0000000    
+    
+    setSpeed: (speedIndex) ->
+        
+        @speedIndex = clamp 0, config.world.speed.length-1, speedIndex
+        @speed = config.world.speed[@speedIndex]
+
+        prefs.set 'speed'      @speedIndex
+        post.emit 'worldSpeed' @speed, @speedIndex
+
+    resetSpeed: -> @setSpeed 2
+    incrSpeed:  -> @setSpeed @speedIndex + 1
+    decrSpeed:  -> @setSpeed @speedIndex - 1
+                
+    # 00000000  000       0000000    0000000   00000000   
+    # 000       000      000   000  000   000  000   000  
+    # 000000    000      000   000  000   000  0000000    
+    # 000       000      000   000  000   000  000   000  
+    # 000       0000000   0000000    0000000   000   000  
+    
+    addFloor: ->
+        
+        geom = new PlaneGeometry 15000 15000
+        @floor = new Mesh geom, Materials.floor
+        @floor.name = 'floor'
+        @scene.add @floor
+        @pickables.push @floor
+        @floor.material.depthWrite = false
+        @floor.receiveShadow = true
+        
+        geom = new PlaneGeometry 1500 1500
+        @shadowFloor = new Mesh geom, Materials.shadow
+        @shadowFloor.receiveShadow = true
+        @shadowFloor.name = 'shadow'
+        
+        # @shadowFloor.material.depthTest = false
+        # @shadowFloor.material.depthFunc = THREE.NeverDepth
+        
+        @scene.add @shadowFloor
+        
+    # 00000000    0000000    0000000  
+    # 000   000  000   000  000       
+    # 00000000   000   000  0000000   
+    # 000        000   000       000  
+    # 000         0000000   0000000   
+        
+    indexToPos: (index,pos) -> 
+        pos.x = ( index      & 0b11111111)-128
+        pos.y = ((index>>8 ) & 0b11111111)-128
+        pos.z = ((index>>16) & 0b11111111)-128
+        pos
+        
+    invalidPos: (pos) -> not @validPos pos
+    validPos: (pos) -> 
+
+        return false if pos.x > 127 or pos.x < -127
+        return false if pos.y > 127 or pos.y < -127
+        return false if pos.z > 127 or pos.z < -127
+        return true
+        
+    roundPos: (v) -> 
+        Vector.tmp.copy v
+        Vector.tmp.rounded()
+        
+    # 00000000   000   0000000  000   000   0000000   0000000    000      00000000   0000000  
+    # 000   000  000  000       000  000   000   000  000   000  000      000       000       
+    # 00000000   000  000       0000000    000000000  0000000    000      0000000   0000000   
+    # 000        000  000       000  000   000   000  000   000  000      000            000  
+    # 000        000   0000000  000   000  000   000  0000000    0000000  00000000  0000000   
+    
+    addPickable: (mesh) ->
+        
+        if mesh not in @pickables
+            @pickables.push mesh
+        
+    removePickable: (mesh) ->
+        
+        if mesh in @pickables
+            @pickables.splice @pickables.indexOf(mesh), 1
+        
+    addObject: (mesh) ->
+        
+        @scene.add mesh
+        
+    removeObject: (mesh) ->
+        
+        mesh.removeFromParent()
+        
+    addMesh: (mesh) ->
+        
+        @addObject mesh
+        @addPickable mesh
+        
+    removeMesh: (mesh) ->
+        
+        @removeObject mesh
+        @removePickable mesh
+        
+    addBody: (body) -> @physics.addBody body
+        
+    removeBody: (body) -> if body ➜ @physics.removeBody body
+    
+    tidyUp: => @physics.clear()
+    
+    onKeyDown: (combo) ->
+        
+        return if @player.onKeyDown(combo) != 'unhandled'
+            
+        'unhandled'
+
+    onKeyUp: (combo) ->
+
+        return if @player.onKeyUp(combo) != 'unhandled'
+            
+        'unhandled'
+        
+module.exports = World

@@ -1,0 +1,147 @@
+###
+00000000   000       0000000   000   000  00000000  00000000   
+000   000  000      000   000   000 000   000       000   000  
+00000000   000      000000000    00000    0000000   0000000    
+000        000      000   000     000     000       000   000  
+000        0000000  000   000     000     00000000  000   000  
+###
+
+function Player
+    
+    @: (opt) ->
+        
+        @mesh = opt?.mesh ? new Mesh Geom.roundedBox({ size:[6 6 6], pos:[0 0 3], radius:1}), Materials.player
+        @mesh.setShadow()
+        
+        @left = 0
+        @right = 0
+        @forward = 0
+        @backward = 0
+                
+    onPointerLock: (x, y, event) ->
+        
+        if @backward > 0
+            @backward += y*0.01
+        else if @forward > 0
+            @forward -= y*0.01
+        else
+            if y > 0 ➜ @backward += y*0.01; @forward = 0
+            else       @forward -= y*0.01; @backward = 0
+  
+        if @right > 0
+            @right += x*0.005
+        else if @left > 0
+            @left -= x*0.005
+        else
+            if x > 0 ➜ @right += x*0.005; @left = 0
+            else       @left  -= x*0.005; @right = 0
+        
+        @left  = clamp 0 1 @left
+        @right = clamp 0 1 @right
+        
+        @forward = clamp 0 2 @forward
+        @backward = clamp 0 2 @backward
+        
+        0
+        
+    getForward: -> Vector.unitY.clone().applyQuaternion @mesh.quaternion
+        
+    getLandscapeIntersection: ->
+        
+        origin = @mesh.position.clone()
+        origin.z += 1000
+        direction = vec 0 0 -1
+        
+        rts.raycaster.set origin, direction
+        intersects = rts.raycaster.intersectObjects world.pickables, true
+
+        intersects = intersects.filter (i) -> i.object.noHitTest != true
+        intersect = intersects[0]
+        
+        if not intersect
+        
+            direction.negate()
+            rts.raycaster.set origin, direction
+            intersects = rts.raycaster.intersectObjects world.pickables, true
+    
+            intersects = intersects.filter (i) -> i.object.noHitTest != true
+            intersect = intersects[0]
+            
+        if not intersect
+
+            return
+                name:   'none'
+                point:  origin
+                norm:   direction.negated()
+                dist:   0
+        
+        info = 
+            name:   intersect.object.name
+            point:  vec intersect.point
+            norm:   vec intersect.normal
+            dist:   intersect.distance
+
+        info
+        
+    #  0000000   000   000  000  00     00   0000000   000000000  00000000  
+    # 000   000  0000  000  000  000   000  000   000     000     000       
+    # 000000000  000 0 000  000  000000000  000000000     000     0000000   
+    # 000   000  000  0000  000  000 0 000  000   000     000     000       
+    # 000   000  000   000  000  000   000  000   000     000     00000000  
+    
+    animate: (scaledDelta, delta) ->
+        
+        @mesh.translateY 2*(@forward - @backward)*scaledDelta
+        
+        info = @getLandscapeIntersection()
+
+        @mesh.position.copy info.point
+                    
+        @mesh.rotateZ deg2rad 50*(@left - @right)*delta
+                        
+        up = Vector.unitZ.clone().applyQuaternion @mesh.quaternion
+        right = Vector.unitX.clone().applyQuaternion @mesh.quaternion
+        forward = Vector.unitY.clone().applyQuaternion @mesh.quaternion
+
+        forwardNorm = forward.projectOnPlane info.norm
+        forwardNorm.normalize()
+        rightNorm = right.projectOnPlane info.norm
+        rightNorm.normalize()
+        
+        m = new THREE.Matrix4
+        m.makeBasis rightNorm, forwardNorm, info.norm
+        
+        @mesh.setRotationFromMatrix m
+        
+    moveForward:  (by=1) -> @forward  = by
+    moveBackward: (by=1) -> @backward = by
+    turnLeft:     (by=1) -> @left  = by
+    turnRight:    (by=1) -> @right = by
+    stopForward:  -> @forward  = 0
+    stopBackward: -> @backward = 0
+    stopLeft:     -> @left     = 0
+    stopRight:    -> @right    = 0
+
+    onKeyDown: (combo) ->
+        
+        switch combo
+            'w' 'up'    ➜ return @moveForward()
+            's' 'down'  ➜ return @moveBackward()
+            'a' 'left'  ➜ return @turnLeft()
+            'd' 'right' ➜ return @turnRight()
+            
+        'unhandled'
+        
+    onKeyUp: (combo) ->
+        
+        switch combo
+            'w' 'up'    ➜ return @stopForward()
+            's' 'down'  ➜ return @stopBackward()
+            'a' 'left'  ➜ return @stopLeft()
+            'd' 'right' ➜ return @stopRight()
+            
+        'unhandled'
+        
+module.exports = Player
+    
+        

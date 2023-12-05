@@ -1,0 +1,59 @@
+###
+0000000    00000000  0000000    000   000   0000000 
+000   000  000       000   000  000   000  000      
+000   000  0000000   0000000    000   000  000  0000
+000   000  000       000   000  000   000  000   000
+0000000    00000000  0000000     0000000    0000000 
+###
+
+{ GUI } = require 'lil-gui'
+
+class Debug
+
+    @: (view) ->
+        
+        @gui = new GUI container:view, title:''
+        @gui.open true
+        @show prefs.get 'debug'
+
+        @gui.add(@, 'resetToggles').name 'toggles'
+        for name,toggle of Toggle.toggles
+            @addToggle toggle
+
+        @gui.add(@, 'resetParams').name 'params'
+        for name,param of Param.params
+            @addParam param
+        
+        post.on 'paramChange'  @update
+        post.on 'toggleChange' @update
+
+    toggle: => @show not prefs.get 'debug'
+    show: (show) -> prefs.set 'debug' show; @gui.show show; @gui.open true
+    del: -> @elem.remove()
+    update: => for c in @gui.controllers ➜ c.updateDisplay()
+        
+    # 00000000    0000000   00000000    0000000   00     00  
+    # 000   000  000   000  000   000  000   000  000   000  
+    # 00000000   000000000  0000000    000000000  000000000  
+    # 000        000   000  000   000  000   000  000 0 000  
+    # 000        000   000  000   000  000   000  000   000  
+    
+    addParam: (param) ->
+        
+        @gui.add(param, 'value' param.cfg.min, param.cfg.max, param.cfg.step) .name(param.name) .onChange((value) -> Param.set param.name, value)
+        
+    resetParams: -> Param.resetAll()
+        
+    # 000000000   0000000    0000000    0000000   000      00000000  
+    #    000     000   000  000        000        000      000       
+    #    000     000   000  000  0000  000  0000  000      0000000   
+    #    000     000   000  000   000  000   000  000      000       
+    #    000      0000000    0000000    0000000   0000000  00000000  
+    
+    addToggle: (toggle) ->
+        
+        @gui.add(toggle, 'value') .name(toggle.name) .onChange((value) -> Toggle.set toggle.name, value)
+                
+    resetToggles: -> Toggle.resetAll()
+                
+module.exports = Debug

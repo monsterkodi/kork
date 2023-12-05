@@ -1,0 +1,230 @@
+###
+000   000  00000000   0000000  000000000   0000000   00000000 
+000   000  000       000          000     000   000  000   000
+ 000 000   0000000   000          000     000   000  0000000  
+   000     000       000          000     000   000  000   000
+    0      00000000   0000000     000      0000000   000   000
+###
+
+{ rad2deg, randRange } = require 'kxk'
+
+ThreeVector = THREE.Vector3
+
+class Vector extends ThreeVector
+
+    @counter: 0
+    @tmp:  new Vector
+    @tmp1: new Vector
+    @tmp2: new Vector
+    @tmp3: new Vector
+    
+    @: (x=0,y=0,z=0) ->
+        
+        Vector.counter += 1
+        
+        if x.x? and x.y?
+            super parseFloat(x.x), parseFloat(x.y), parseFloat(x.z ? 0)
+        else if Array.isArray x
+            super parseFloat(x[0]), parseFloat(x[1]), parseFloat(x[2] ? 0)
+        else
+            super parseFloat(x), parseFloat(y), parseFloat(z ? 0)
+            
+        if Number.isNaN @x
+            throw new Error
+            
+    clone: -> new Vector @
+    copy: (v) -> 
+        @x = v.x
+        @y = v.y 
+        @z = v.z ? 0
+        @
+    
+    parallel: (n) ->
+        dot = @x*n.x + @y*n.y + @z*n.z
+        new Vector dot*n.x, dot*n.y, dot*n.z
+
+    # returns the projection of normalized vector n to vector that is perpendicular to this
+    perpendicular: (n) ->
+        dot = @x*n.x + @y*n.y + @z*n.z
+        new Vector @x-dot*n.x, @y-dot*n.y, @z-dot*n.z 
+
+    reflect: (n) ->
+        dot = 2*(@x*n.x + @y*n.y + @z*n.z)
+        new Vector @x-dot*n.x, @y-dot*n.y, @z-dot*n.z
+        
+    rotated: (axis, angle) -> @clone().rotate axis,angle
+    rotate: (axis, angle) ->
+        Quaternion = require './quaternion'
+        @applyQuaternion Quaternion.axisAngle axis, angle
+        @
+
+    crossed: (v) -> @clone().cross(v)
+    cross: (v) -> @crossVectors @, v
+    
+    normal: -> @clone().normalize()
+    normalize: ->
+        l = @length()
+        if l
+            l = 1.0/l
+            @x *= l
+            @y *= l
+            @z *= l
+        @    
+
+    xyperp: -> new Vector -@y, @x
+    
+    rounded: -> @clone().round()
+    round: -> 
+        @x = Math.round @x 
+        @y = Math.round @y 
+        @z = Math.round @z
+        @
+
+    equals: (o) -> @manhattan(o) < 0.001
+    same:   (o) -> @x==o.x and @y==o.y and z=o.z
+
+    faded: (o, val) -> @clone().fade o, val
+    fade: (o, val) -> # linear interpolation from this (val==0) to other (val==1)
+        
+        @x = @x * (1-val) + o.x * val
+        @y = @y * (1-val) + o.y * val
+        @z = @z * (1-val) + o.z * val
+        @
+    
+    xyangle: (v) ->
+        
+        thisXY  = new Vector(@x, @y).normal()
+        otherXY = new Vector(v.x, v.y).normal()
+        if thisXY.xyperp().dot otherXY >= 0 
+            return rad2deg(Math.acos(thisXY.dot otherXY))
+        -rad2deg(Math.acos(thisXY.dot otherXY))
+        
+    paris: (o) -> 
+        m = [Math.abs(o.x-@x),Math.abs(o.y-@y),Math.abs(o.z-@z)]
+        m.sort (a,b) -> b-a
+        m[0]+0.2*m[1]+0.1*m[2]
+    
+    manhattan: (o) -> Math.abs(o.x-@x)+Math.abs(o.y-@y)+Math.abs(o.z-@z)
+    length:    -> Math.sqrt @x*@x + @y*@y + @z*@z
+    dot:   (v) -> @x*v.x + @y*v.y + @z*v.z
+    dist:   (o) -> 
+        Vector.tmp.copy @
+        Vector.tmp.sub(o).length()
+    
+    mul:   (f) -> new Vector @x*f, @y*f, @z*f
+    div:   (d) -> new Vector @x/d, @y/d, @z/d
+    plus:  (v) -> new Vector(v).add @
+    minus: (v) -> new Vector(v).neg().add @
+    neg:       -> new Vector -@x, -@y, -@z
+    to:    (v) -> new Vector(v).sub @
+        
+    angle: (v) -> 
+        
+        if l = @length()
+            if o = v.length()
+                x = @x / l
+                y = @y / l
+                z = @z / l
+                p = v.x / o
+                q = v.y / o
+                r = v.z / o
+                return rad2deg Math.acos x*p + y*q + z*r
+        0    
+    
+    negate:  -> @multiplyScalar -1
+    negated: -> @clone().multiplyScalar -1
+    
+    times: (f) -> @multiplyScalar f
+    scale: (f) -> @multiplyScalar f
+    scaled: (f) -> @clone().scale f
+        
+    reset: ->
+        @x = @y = @z = 0
+        @
+    
+    isZero: -> @x == @y == @z == 0
+
+    randomize: -> 
+        @set randRange(-1,1),randRange(-1,1),randRange(-1,1)
+        @normalize()
+        @
+        
+    # lerp: (a,t) -> @add Vector.tmp.copy(a).sub(@).times(t)        
+    
+    @random: -> new Vector().randomize()
+            
+    @rayPlaneIntersection: (rayPos, rayDirection, planePos, planeNormal) ->
+        x = planePos.minus(rayPos).dot(planeNormal) / rayDirection.dot(planeNormal)
+        return rayPos.plus rayDirection.mul x
+
+    @pointMappedToPlane: (point, planePos, planeNormal) ->
+        point.minus(planeNormal).dot point.minus(planePos).dot(planeNormal)
+
+    @rayPlaneIntersectionFactor: (rayPos, rayDir, planePos, planeNormal) ->
+        rayDot = rayDir.dot planeNormal
+        if Number.isNaN rayDot
+            throw new Error
+        return 2 if rayDot == 0
+        r = planePos.minus(rayPos).dot(planeNormal) / rayDot
+        if Number.isNaN r
+            log 'rayPos', rayPos
+            log 'rayDir', rayDir
+            log 'planePos', planePos
+            log 'planeNormal', planeNormal
+            throw new Error
+        r
+
+    @PX: 0
+    @PY: 1
+    @PZ: 2
+    @NX: 3
+    @NY: 4
+    @NZ: 5
+        
+    @unitX:   new Vector 1,0,0
+    @unitY:   new Vector 0,1,0
+    @unitZ:   new Vector 0,0,1
+    @minusX:  new Vector -1,0,0
+    @minusY:  new Vector 0,-1,0
+    @minusZ:  new Vector 0,0,-1
+    
+    @normals: [Vector.unitX, Vector.unitY, Vector.unitZ, Vector.minusX, Vector.minusY, Vector.minusZ]
+    
+    @perpNormals: (v) -> 
+        i = @normalIndex(v)
+        switch i
+            when @PX then [@unitY, @unitZ, @minusY, @minusZ]
+            when @PY then [@minusX, @unitZ, @unitX, @minusZ]
+            when @PZ then [@unitY, @minusX, @minusY, @unitX]
+            when @NX then [@unitY, @minusZ, @minusY, @unitZ]            
+            when @NY then [@minusX, @minusZ, @unitX, @unitZ]            
+            when @NZ then [@unitY, @unitX, @minusY, @minusX]            
+    
+    @normalIndex: (v) -> 
+    
+        cn = @closestNormal v
+        for i in [0...6]
+            if Vector.normals[i].equals cn
+                return i
+        -1
+    
+    @closestNormal: (v) ->
+        
+        Vector.tmp.copy v
+        Vector.tmp.normalize()
+        angles = []
+        for n in Vector.normals
+            if n.equals Vector.tmp
+                return n
+            angles.push [n.angle(Vector.tmp), n]
+                
+        angles.sort (a,b) -> a[0]-b[0]
+        angles[0][1]
+        
+    @midPoint: (a, b, f=0.5) ->
+        
+        m = b.minus a
+        m.scale f
+        m.add a
+    
+module.exports = Vector

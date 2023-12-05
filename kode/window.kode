@@ -1,0 +1,123 @@
+###
+000   000  000  000   000  0000000     0000000   000   000  
+000 0 000  000  0000  000  000   000  000   000  000 0 000  
+000000000  000  000 0 000  000   000  000   000  000000000  
+000   000  000  000  0000  000   000  000   000  000   000  
+00     00  000  000   000  0000000     0000000   00     00  
+###
+
+{ args, keyinfo, post, prefs, win } = require 'kxk'
+
+RTS        = require './rts'
+Vector     = require './lib/vector'
+Quaternion = require './lib/quaternion'
+electron   = require 'electron'
+    
+post.setMaxListeners 20
+
+window.vec  = (x,y,z)   -> new Vector x, y, z
+window.quat = (x,y,z,w) -> new Quaternion x, y, z, w
+
+function Window extends win
+    
+    onMenuAction: (action, args) =>
+        
+        super action, args
+        
+w = new Window
+    dir:    __dirname
+    pkg:    require '../package.json'
+    menu:   '../kode/menu/menu.noon'
+    icon:   '../img/menu@2x.png'
+    context: (items) -> 
+    onLoad: -> 
+        window.rts = new RTS $ '#main'
+        
+#  0000000   000   000   0000000  000       0000000    0000000  00000000
+# 000   000  0000  000  000       000      000   000  000       000
+# 000   000  000 0 000  000       000      000   000  0000000   0000000
+# 000   000  000  0000  000       000      000   000       000  000
+#  0000000   000   000   0000000  0000000   0000000   0000000   00000000
+
+onMove  = -> saveBounds() 
+
+saveBounds = -> prefs.set 'bounds', window.win.getBounds()
+
+onClose = ->
+    
+#  0000000   000   000  000       0000000    0000000   0000000
+# 000   000  0000  000  000      000   000  000   000  000   000
+# 000   000  000 0 000  000      000   000  000000000  000   000
+# 000   000  000  0000  000      000   000  000   000  000   000
+#  0000000   000   000  0000000   0000000   000   000  0000000
+
+window.onload = ->
+    
+    window.rts ?= new RTS $ '#main'
+    window.onresize()
+
+# 00000000   00000000  000       0000000    0000000   0000000
+# 000   000  000       000      000   000  000   000  000   000
+# 0000000    0000000   000      000   000  000000000  000   000
+# 000   000  000       000      000   000  000   000  000   000
+# 000   000  00000000  0000000   0000000   000   000  0000000
+
+reloadWin = ->
+
+    prefs.save()
+    clearListeners()
+    electron.remote.getCurrentWindow()?.webContents.reloadIgnoringCache()
+
+# 00000000   00000000   0000000  000  0000000  00000000  
+# 000   000  000       000       000     000   000       
+# 0000000    0000000   0000000   000    000    0000000   
+# 000   000  000            000  000   000     000       
+# 000   000  00000000  0000000   000  0000000  00000000  
+
+window.onresize = (event) -> 
+    
+    saveBounds()
+    main =$ "#main"
+    br = main.getBoundingClientRect()
+    rts?.resized br.width, br.height
+    
+# 000   000  00000000  000   000  
+# 000  000   000        000 000   
+# 0000000    0000000     00000    
+# 000  000   000          000     
+# 000   000  00000000     000     
+
+window.onkeydown = (event) ->
+    
+    if @rts.onKeyDown(keyinfo.comboForEvent(event)) != 'unhandled'
+        return
+    
+    switch keyinfo.comboForEvent(event)
+        'esc'       ➜ post.emit 'cancel'
+        'g'         ➜ post.emit 'toggle' 'grid'
+        'f'         ➜ post.emit 'toggle' 'flat'
+        'm'         ➜ post.emit 'toggle' 'wire'
+        'i'         ➜ post.emit 'toggle' 'info'
+        'l'         ➜ post.emit 'toggle' 'lable'
+        't'         ➜ post.emit 'addTrain'
+        'ctrl+s'    ➜ post.emit 'save'
+        'ctrl+r'    ➜ post.emit 'reload'
+        'command+s' ➜ post.emit 'save'
+        'command+r' ➜ post.emit 'reload'
+        'backspace' 'delete' ➜ post.emit 'delete'
+        '.'         ➜ rts.toggleDebug() 
+        'space'     ➜ rts.togglePause()
+        '='         ➜ world.incrSpeed(); world.incrSpeed()
+        '-'         ➜ world.decrSpeed(); world.decrSpeed()
+        '0'         ➜ world.resetSpeed()
+        # else 
+            # log 'keydown' keyinfo.forEvent event
+            # log 'keydown' keyinfo.comboForEvent event
+    
+window.onkeyup = (event) ->
+    
+    if @rts.onKeyUp(keyinfo.comboForEvent(event)) != 'unhandled'
+        return
+        
+post.on 'menuAction' (action) ->
+    

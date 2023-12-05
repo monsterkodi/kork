@@ -1,0 +1,103 @@
+###
+ 0000000   0000000   000   000  000   000   0000000    0000000  0000000    000   000  000000000  000000000   0000000   000   000
+000       000   000  0000  000  000   000  000   000  000       000   000  000   000     000        000     000   000  0000  000
+000       000000000  000 0 000   000 000   000000000  0000000   0000000    000   000     000        000     000   000  000 0 000
+000       000   000  000  0000     000     000   000       000  000   000  000   000     000        000     000   000  000  0000
+ 0000000  000   000  000   000      0      000   000  0000000   0000000     0000000      000        000      0000000   000   000
+###
+
+class CanvasButton
+    
+    @: (div, clss='canvasButton', @lightPos, @camPos) ->
+        
+        @highlighted = false
+        
+        @width  = 100
+        @height = 100
+        @size   = vec @width*window.devicePixelRatio, @height*window.devicePixelRatio
+        
+        @name = 'CanvasButton'
+        
+        @meshes = {}
+        
+        if not CanvasButton.renderer
+            CanvasButton.renderer = new THREE.WebGLRenderer antialias:true, alpha:true
+            CanvasButton.renderer.setPixelRatio window.devicePixelRatio
+            CanvasButton.renderer.setSize @width, @height
+            CanvasButton.renderer.setClearColor 0 0
+
+        @canvas = elem 'canvas', class:clss, width:@size.x, height:@size.y
+        div.appendChild @canvas
+        
+        @canvas.button = @        
+        @scene = new THREE.Scene()
+        
+        @highFov  ?= 33
+        @normFov  ?= 40
+        @lightPos ?= vec 0,10,6
+        @lookPos  ?= vec 0,0,0
+        @camPos   ?= vec(0.3,0.6,1).normal().mul 12
+        
+        @initCamera()
+        
+        @camera.position.copy @camPos
+        @camera.lookAt @lookPos
+        @camera.updateProjectionMatrix() 
+        
+        @initLight()
+        @initScene()
+        
+        @dirty = true
+        
+    del: => @canvas.remove()
+    
+    initLight: ->
+
+        @light = new THREE.DirectionalLight 0xffffff
+        @light.position.copy @lightPos
+        @scene.add @light
+        
+        @scene.add new THREE.AmbientLight 0xffffff
+
+    initCamera: ->
+        
+        @camera = new THREE.PerspectiveCamera @normFov, @width/@height, 0.01, 100
+        
+    initScene: -> 
+    
+    # 000   000  000   0000000   000   000  000      000   0000000   000   000  000000000  
+    # 000   000  000  000        000   000  000      000  000        000   000     000     
+    # 000000000  000  000  0000  000000000  000      000  000  0000  000000000     000     
+    # 000   000  000  000   000  000   000  000      000  000   000  000   000     000     
+    # 000   000  000   0000000   000   000  0000000  000   0000000   000   000     000     
+    
+    highlight: =>
+        
+        @highlighted = true
+    
+    unhighlight: =>
+        
+        @highlighted = false
+        
+    update: => 
+
+        @dirty = true
+        
+    animate: (delta) ->
+        
+        if @dirty then @render()
+    
+    render: =>
+        
+        if @dirty
+        
+            @dirty = false
+            
+            CanvasButton.renderer.clear()
+            CanvasButton.renderer.render @scene, @camera
+            
+            context = @canvas.getContext '2d'
+            context.clearRect 0 0 2*@width, 2*@height
+            context.drawImage CanvasButton.renderer.domElement, 0 0
+        
+module.exports = CanvasButton

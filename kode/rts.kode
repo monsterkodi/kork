@@ -1,0 +1,602 @@
+###
+00000000   000000000   0000000
+000   000     000     000     
+0000000       000     0000000 
+000   000     000          000
+000   000     000     0000000 
+###
+
+kxk = require 'kxk'
+
+{ _, deg2rad, elem, first, last, post, prefs, rad2deg, randInt, randIntRange, randRange, stopEvent } = require 'kxk'
+
+window.$            = kxk.$
+window._            = _
+window.post         = post
+window.prefs        = prefs
+window.randInt      = randInt
+window.randIntRange = randIntRange
+window.randRange    = randRange
+window.deg2rad      = deg2rad
+window.rad2deg      = rad2deg
+window.stopEvent    = stopEvent
+window.first        = first
+window.last         = last
+window.elem         = elem
+window.abs          = Math.abs
+
+window.THREE        = require 'three'
+
+expose = """
+    Ray
+    Mesh
+    Line3
+    Color
+    Group
+    Plane
+    Matrix3
+    Matrix4
+    Sphere
+    CurvePath
+    BoxGeometry
+    PlaneGeometry
+    SphereGeometry
+    CircleGeometry
+    CylinderGeometry
+    LineSegments
+    QuadraticBezierCurve3
+    CubicBezierCurve3
+    BufferGeometry
+    BufferAttribute
+    """
+    
+for e in expose.split '\n'
+    window[e] = THREE[e]
+    
+CopyShader      = require './lib/three/CopyShader'
+EffectComposer  = require './lib/three/EffectComposer'
+RenderPass      = require './lib/three/RenderPass'
+UnrealBloomPass = require './lib/three/UnrealBloomPass'
+
+{ Text } = require 'troika-three-text'
+window.Text = Text
+
+setShadow = -> @castShadow = @receiveShadow = true
+setShadow.bind window.Mesh
+window.Mesh.prototype.setShadow = setShadow
+    
+window.Vector       = require './lib/vector'
+window.Quaternion   = require './lib/quaternion'
+window.Colors       = require './const/colors'
+window.Materials    = require './const/materials'
+window.Geom         = require './const/geometry'
+window.playSound    = (o,n,c) -> rts.sound.play o,n,c
+window.Param        = require './lib/param'
+window.Toggle       = require './lib/toggle'
+   
+FPS          = require './lib/fps'
+Info         = require './lib/info'
+Debug        = require './debug'
+Sound        = require './lib/sound'
+GridHelper   = require './lib/gridhelper'
+Config       = require './const/config'
+Menu         = require './menu/menu'
+World        = require './world/world'
+Map          = require './world/map'
+Camera       = require './lib/camera'
+PlayerCamera = require './player/camera'
+Node         = require './track/node'
+CurveCtrl    = require './track/curvectrl'
+PointerLock  = require './lib/three/PointerLock'
+
+tmpMatrix = new THREE.Matrix3
+
+class RTS
+
+    @: (@view) ->
+        
+        new Param "speed"   6   max:12  step:1    fixed:0 change: (value) => world.setSpeed value
+        new Param "bloom"   0.5 max:1.0 step:0.05 fixed:2 change: (value) => @bloomPass.strength     = value
+        new Param "thresh"  0.1 max:1.0 step:0.05 fixed:2 change: (value) => @bloomPass.threshold    = value
+        new Param "ambient" 0.2 max:1.0 step:0.05 fixed:2 change: (value) => @lightAmbient.intensity = value
+        new Param "point"   20  max:30  step:1    fixed:0 change: (value) => @lightPlayer.intensity  = value
+        new Param "decay"   1   max:2   step:0.1  fixed:1 change: (value) => @lightPlayer.decay      = value
+        new Param "sun"     2   max:10  step:1    fixed:0 change: (value) => @lightShadow.intensity  = value
+        
+        new Toggle 'wire'   change: (value) -> Materials.setWire value
+        new Toggle 'axes'   change: (value) -> rts.axesHelper.visible = value
+        new Toggle 'arrow'  change: (value) -> rts.arrowHelper.visible = value
+        new Toggle 'shadow' change: (value) -> rts.shadowCameraHelper.visible = value
+        new Toggle 'light'  change: (value) -> rts.lightShadowHelper.visible = value
+        new Toggle 'grid'   change: (value) -> rts.gridHelper.visible = value
+        new Toggle 'label'  change: (value) -> world.setLabels value
+        
+        window.rts = @
+        window.config = Config.default
+                
+        @sound = new Sound
+        
+        @fps = new FPS
+        @paused = false
+        @animations = []
+        @worldAnimations = []
+        
+        @renderer = new THREE.WebGLRenderer({antialias:false})
+        @renderer.setPixelRatio window.devicePixelRatio
+        @renderer.setSize @view.clientWidth, @view.clientHeight
+        
+        @renderer.setClearColor Colors.clear
+        @renderer.shadowMap.enabled = true
+        @renderer.shadowMap.type = THREE.PCFSoftShadowMap
+        @renderer.info.autoReset = false
+        
+        @playerCamera = new PlayerCamera view:@view
+        @debugCamera = new Camera view:@view
+        @camera = @playerCamera
+        
+        @scene  = new THREE.Scene()
+        
+        canvas = @renderer.domElement
+        
+        @initComposer()
+        
+        @view.appendChild @renderer.domElement
+                
+        @lightAmbient = new THREE.AmbientLight 0xffffff, Param.get 'ambient'
+        @scene.add @lightAmbient
+        
+        @lightPlayer = new THREE.PointLight 0xffffff, Param.get('point'), 0, Param.get('decay')
+        @lightPlayer.position.copy @player.camera.getPosition() if @player?
+        @lightPlayer.position.copy @camera.position
+        @scene.add @lightPlayer
+
+        @lightAngle = 0
+        @lightShadow = new THREE.DirectionalLight 0xffffff, Param.get 'sun'
+        @lightShadow.castShadow = true
+        @lightShadow.position.set -50 -100 100
+        @lightShadow.target.position.set 0 0 0
+        @lightShadow.shadow.mapSize.width  = 2*2048
+        @lightShadow.shadow.mapSize.height = 2*2048
+        @lightShadow.shadow.camera.near    = 0.5
+        @lightShadow.shadow.camera.far     = 5000
+        @lightShadow.shadow.camera.left    = -50
+        @lightShadow.shadow.camera.right   =  50
+        @lightShadow.shadow.camera.top     =  50
+        @lightShadow.shadow.camera.bottom  = -50
+        @scene.add @lightShadow
+        
+        @scene.fog = new THREE.Fog Colors.fog, 100, 4000
+        
+        @initHelpers()
+        
+        @mouse   = vec()
+        @downPos = vec()
+        
+        @raycaster = new THREE.Raycaster()
+
+        new Map @scene # sets window.world
+                             
+        if cam = prefs.get 'camera'
+            @setCamera cam
+        
+        @pointerLock = new PointerLock @view
+            
+        @menu = new Menu
+                
+        document.addEventListener 'mousemove' @onMouseMove
+        document.addEventListener 'mousedown' @onMouseDown
+        
+        document.addEventListener 'mouseup'   @onMouseUp
+        document.addEventListener 'dblclick'  @onDblClick
+                
+        @lastAnimationTime = window.performance.now()
+        @lastTimeStamp = @lastAnimationTime
+                
+        if not prefs.get 'save'
+            world.create()
+        else
+            post.emit 'load'
+            
+        @animationStep()
+                
+        @paused = prefs.get 'paused' false
+        
+        @debug = new Debug @view
+                        
+        Toggle.applyAll()
+        Param.applyAll()
+            
+    # 000   000  00000000  000      00000000   00000000  00000000    0000000  
+    # 000   000  000       000      000   000  000       000   000  000       
+    # 000000000  0000000   000      00000000   0000000   0000000    0000000   
+    # 000   000  000       000      000        000       000   000       000  
+    # 000   000  00000000  0000000  000        00000000  000   000  0000000   
+    
+    initHelpers: ->
+        
+        @lightShadowHelper = new THREE.DirectionalLightHelper @lightShadow, 5, new THREE.Color 0xffff00
+        @scene.add @lightShadowHelper
+        
+        @shadowCameraHelper = new THREE.CameraHelper @lightShadow.shadow.camera
+        @scene.add @shadowCameraHelper
+        
+        @gridHelper = new GridHelper()
+        @gridHelper.position.z += 1
+        @scene.add @gridHelper
+        
+        @axesHelper = new THREE.AxesHelper 5
+        @axesHelper.position.copy @camera.center
+        @axesHelper.material.depthWrite = false
+        @axesHelper.material.depthTest = false
+        @axesHelper.material.depthFunc = THREE.NeverDepth
+        @scene.add @axesHelper
+                        
+        @arrowHelper = new THREE.ArrowHelper vec(0 0 1), @camera.center, 5, 0x8888ff
+        @scene.add @arrowHelper
+            
+    #  0000000   0000000   00     00  00000000  00000000    0000000   
+    # 000       000   000  000   000  000       000   000  000   000  
+    # 000       000000000  000000000  0000000   0000000    000000000  
+    # 000       000   000  000 0 000  000       000   000  000   000  
+    #  0000000  000   000  000   000  00000000  000   000  000   000  
+    
+    setCamera: (cfg={dist:10, rotate:45, degree:45}) ->
+        
+        return if @camera != @debugCamera
+            
+        @camera.dist   = cfg.dist   ? 10
+        @camera.rotate = cfg.rotate ? 45
+        @camera.degree = cfg.degree ? 45
+        
+        if cfg.pos?
+            @camera.focusOnPoint vec cfg.pos
+        else if cfg.center
+            @camera.focusOnPoint vec cfg.center
+        @camera.update()
+        
+    resetCamera: (mode='free') ->
+
+        return if @camera != @debugCamera
+                
+        @camera.focusOnPoint vec 0 0 0
+        
+        switch mode
+            'top'   ➜ @camera.rotate = @camera.degree = 0
+            'front' ➜ @camera.rotate = 0; @camera.degree = 90
+            'side'  ➜ @camera.rotate = -90; @camera.degree = 90
+                    ➜ @camera.rotate = -15; @camera.degree = 45
+                    
+        @axesHelper.position.copy vec 0 0 0
+
+    #  0000000   0000000   00     00  00000000    0000000    0000000  00000000  00000000   
+    # 000       000   000  000   000  000   000  000   000  000       000       000   000  
+    # 000       000   000  000000000  00000000   000   000  0000000   0000000   0000000    
+    # 000       000   000  000 0 000  000        000   000       000  000       000   000  
+    #  0000000   0000000   000   000  000         0000000   0000000   00000000  000   000  
+    
+    initComposer: ->
+                
+        size = @renderer.getDrawingBufferSize new THREE.Vector2()
+        renderTarget = new THREE.WebGLRenderTarget size.width, size.height, samples:1
+            
+        vw = @view.clientWidth 
+        vh = @view.clientHeight
+        
+        @composer = new EffectComposer @renderer, renderTarget
+        @composer.setPixelRatio window.devicePixelRatio
+        @composer.setSize vw, vh
+        @composer.addPass new RenderPass @scene, @camera
+        
+        resolution = new THREE.Vector2 vw, vh
+        strength   = Param.get 'bloom'
+        threshold  = Param.get 'thresh'
+        radius     = 0
+
+        @bloomPass = new UnrealBloomPass resolution, strength, radius, threshold
+        @composer.addPass @bloomPass
+                                
+    toggleDebug: -> @debug.toggle()
+
+    #  0000000   000   000  000  00     00   0000000   000000000  00000000  
+    # 000   000  0000  000  000  000   000  000   000     000     000       
+    # 000000000  000 0 000  000  000000000  000000000     000     0000000   
+    # 000   000  000  0000  000  000 0 000  000   000     000     000       
+    # 000   000  000   000  000  000   000  000   000     000     00000000  
+    
+    animate: (func) ->
+        
+        @animations.push func
+        
+    deanimate: (func) ->
+        
+        if (index = @animations.indexOf func) >= 0
+            @animations.splice index, 1
+        
+    animateWorld: (func) ->
+        
+        @worldAnimations.push func
+        
+    togglePause: -> 
+    
+        @paused = not @paused
+        prefs.set 'paused' @paused
+        post.emit 'pause' @paused
+    
+    animationStep: (timeStamp) =>
+        
+        now = window.performance.now()
+        # delta = (now - @lastAnimationTime) * 0.001
+        delta = (timeStamp-@lastTimeStamp) * 0.001
+
+        # log delta, timeStamp, @lastTimeStamp
+        if not timeStamp
+            window.requestAnimationFrame @animationStep
+            return
+        
+        @lastAnimationTime = now
+        @lastTimeStamp = timeStamp
+        
+        oldAnimations = @animations.clone()
+        @animations = []
+        
+        for animation in oldAnimations
+            animation delta
+        
+        @menu.animate delta
+         
+        if not @paused
+                    
+            world.animate delta
+            
+            # @lightAngle += delta*0.5*world.speed
+            @lightShadow.target.position.copy world.player.mesh.position
+            @lightShadow.position.copy world.player.mesh.position
+            lightOffset = vec -50 -100 100
+            lightOffset.applyQuaternion Quaternion.axisAngle Vector.unitZ, @lightAngle
+            @lightShadow.position.add lightOffset
+            # @lightShadow.position.applyQuaternion Quaternion.axisAngle Vector.unitZ, angle
+            @lightShadowHelper.update()   
+             
+            oldWorldAnimations = @worldAnimations.clone()
+            @worldAnimations = []
+            for animation in oldWorldAnimations
+                animation delta * world.speed
+                
+            @camera.update delta
+
+        @render()
+
+        window.requestAnimationFrame @animationStep
+            
+    # 00     00   0000000   000   000   0000000  00000000  
+    # 000   000  000   000  000   000  000       000       
+    # 000000000  000   000  000   000  0000000   0000000   
+    # 000 0 000  000   000  000   000       000  000       
+    # 000   000   0000000    0000000   0000000   00000000  
+    
+    onMouseDown: (event) =>
+        
+        # @pointerLock.lock()
+        
+        @calcMouse event
+        @downPos.copy @mouse
+        @camMove = event.button != 1
+        
+        if @downHit = @castRay()
+        
+            if event.buttons == 1
+                if @downHit.mesh?.handler?.onMouseDown is func
+                    @downHit.mesh.handler.onMouseDown @downHit, event
+                
+        post.emit 'mouseDown' @downHit, event
+            
+    onMouseUp: (event) =>
+
+        @calcMouse event
+                 
+        hit = @castRay()
+        
+        if @downHit?.mesh?.onDragDone is func
+            @downHit.mesh.onDragDone hit, @downHit
+        else if @downHit?.mesh?.handler?.onDragDone is func
+            @downHit.mesh.handler.onDragDone hit, @downHit
+        
+        if @downHit?.mesh?.handler?.onMouseUp is func
+            @downHit.mesh.handler.onMouseUp hit, @downHit
+                    
+        post.emit 'mouseUp' hit, @downHit
+        
+        moved = @downPos.dist @mouse
+        if moved < 0.001
+            @onClick event
+        if moved < 0.01
+            # if event.button == 1
+            @focusOnHit()
+        
+        Node.skipCenter = false
+                
+        delete @camMove
+        # keep downHit!
+        
+    onMouseMove: (event) =>
+
+        @pointerLock.onMouseMove event
+        @calcMouse event
+
+        return if not Toggle.get 'arrow'
+        
+        if hit = @castRay()
+
+            if event.buttons == 1
+                if @downHit?.mesh?.onDrag is func
+                    @downHit.mesh.onDrag hit, @downHit, @lastHit
+                else if @downHit?.mesh?.handler?.onDrag is func
+                    @downHit.mesh.handler.onDrag hit, @downHit, @lastHit
+            
+            post.emit 'mouseMove' hit, @downHit, @lastHit
+            
+            if @lastHit?.mesh != hit.mesh 
+                if @lastHit?.mesh?.onLeave is func
+                    @lastHit.mesh.onLeave @lastHit, hit, event
+                else if @lastHit?.mesh?.handler?.onLeave is func
+                    @lastHit.mesh.handler.onLeave @lastHit, hit, event
+                if hit.mesh?.onEnter is func
+                    hit.mesh.onEnter hit, @lastHit, event
+                else if hit.mesh?.handler?.onEnter is func
+                    hit.mesh.handler.onEnter hit, @lastHit, event
+                    
+            @lastHit = hit
+                
+    onClick: (event) =>
+        
+        if hit = @castRay()
+            if hit.mesh?.onClick is func
+                if @downHit.mesh == hit.mesh
+                    hit.mesh.onClick hit, event
+            else if hit.mesh?.handler?.onClick is func
+                if @downHit.mesh == hit.mesh
+                    hit.mesh.handler.onClick hit, event
+                 
+    onDblClick: (event) => 
+        
+        if hit = @castRay()
+             
+            if hit.mesh?.onDoubleClick is func
+                hit.mesh.onDoubleClick hit
+            else if hit.mesh?.handler?.onDoubleClick is func
+                hit.mesh.handler.onDoubleClick hit
+                            
+    calcMouse: (event) ->
+        
+        br = @view.getBoundingClientRect()
+        @mouse.x =  ((event.clientX - 6) / br.width) * 2 - 1
+        @mouse.y = -((event.clientY - br.top) / br.height ) * 2 + 1
+        @mouse
+        
+    focusOnHit: ->
+
+        if hit = @castRay()
+            @camera.fadeToPoint? hit.point
+            @axesHelper.position.copy hit.point
+            
+    #  0000000   0000000    0000000  000000000  00000000    0000000   000   000  
+    # 000       000   000  000          000     000   000  000   000   000 000   
+    # 000       000000000  0000000      000     0000000    000000000    00000    
+    # 000       000   000       000     000     000   000  000   000     000     
+    #  0000000  000   000  0000000      000     000   000  000   000     000     
+    
+    castRay: ->
+
+        @raycaster.setFromCamera @mouse, @camera
+        intersects = @raycaster.intersectObjects world.pickables, true
+
+        intersects = intersects.filter (i) -> i.object.noHitTest != true
+        intersect = intersects[0]
+        
+        return if not intersect
+        
+        # log intersect.object.name
+        
+        point = intersect.point
+        norm  = intersect.face.normal.clone()
+        
+        tmpMatrix.getNormalMatrix intersect.object.matrixWorld
+        norm.applyMatrix3 tmpMatrix
+        
+        @arrowHelper.setDirection norm
+        @arrowHelper.position.copy point
+        
+        ray = new Ray @camera.position, vec(@camera.position).to(point).normalize()
+        
+        info = 
+            name:   intersect.object.name
+            point:  point
+            norm:   norm
+            dist:   intersect.distance
+            mesh:   intersect.object
+            ray:    ray
+                    
+        info
+        
+    # 00000000   00000000  000   000  0000000    00000000  00000000   
+    # 000   000  000       0000  000  000   000  000       000   000  
+    # 0000000    0000000   000 0 000  000   000  0000000   0000000    
+    # 000   000  000       000  0000  000   000  000       000   000  
+    # 000   000  00000000  000   000  0000000    00000000  000   000  
+    
+    render: ->
+        
+        @lightPlayer.position.copy @camera.position
+        @renderer.render world.scene, @camera
+        
+        info = 
+            vecs:       Vector.counter
+            quats:      Quaternion.counter
+            frame:      @renderer.info.render.frame
+            calls:      @renderer.info.render.calls
+            lines:      @renderer.info.render.lines
+            points:     @renderer.info.render.points
+            textures:   @renderer.info.memory.textures
+            programs:   @renderer.info.programs.length
+            geometries: @renderer.info.memory.geometries
+            triangles:  @renderer.info.render.triangles
+
+        @composer.render()
+        @renderer.info.reset()
+        
+        @fps.draw()
+        
+        if prefs.get 'info'
+            @info ?= new Info
+            @info.draw info
+        else if @info?
+            @info.del()
+            delete @info
+            
+    setPlayerCamera: (usePlayerCam) ->
+
+        if usePlayerCam
+            @camera = @playerCamera
+        else
+            @camera = @debugCamera
+            
+    hasPlayerCamera: ->
+        
+        @camera == @playerCamera
+            
+    # 00000000   00000000   0000000  000  0000000  00000000  0000000  
+    # 000   000  000       000       000     000   000       000   000
+    # 0000000    0000000   0000000   000    000    0000000   000   000
+    # 000   000  000            000  000   000     000       000   000
+    # 000   000  00000000  0000000   000  0000000  00000000  0000000  
+    
+    resized: (w,h) ->
+        
+        @renderer.setSize w, h
+        @composer.setSize w, h
+        
+        @camera.aspect = w/h
+        @camera.size.set w, h
+        @camera.updateProjectionMatrix()
+        
+    # 000   000  00000000  000   000  
+    # 000  000   000        000 000   
+    # 0000000    0000000     00000    
+    # 000  000   000          000     
+    # 000   000  00000000     000     
+    
+    onKeyDown: (combo) ->
+        
+        return if world.onKeyDown(combo) != 'unhandled'
+        return if @camera.onKeyDown(combo) != 'unhandled'
+        
+        'unhandled'
+
+    onKeyUp: (combo) ->
+        
+        return if world.onKeyUp(combo) != 'unhandled'
+        return if @camera.onKeyUp(combo) != 'unhandled'
+        
+        'unhandled'
+        
+module.exports = RTS

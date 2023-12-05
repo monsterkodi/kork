@@ -1,0 +1,155 @@
+###
+0000000    00000000  0000000    000   000   0000000 
+000   000  000       000   000  000   000  000      
+000   000  0000000   0000000    000   000  000  0000
+000   000  000       000   000  000   000  000   000
+0000000    00000000  0000000     0000000    0000000 
+###
+
+class Debug
+
+    @: ->
+
+        @elem = elem class:'debug' style:"position:absolute; z-index:1; bottom:10px; left:10px;"
+        @help = elem class:'debug' style:'position:absolute; z-index:1; bottom:10px; left:150px;' parent:@elem
+        @mats = elem class:'debug' style:'position:absolute; z-index:1; bottom:10px; left:300px;' parent:@elem
+        @grid = elem class:'debug' style:'position:absolute; z-index:1; bottom:10px; left:450px;' parent:@elem
+        @shdw = elem class:'debug' style:'position:absolute; z-index:1; bottom:10px; left:600px;' parent:@elem
+        @tool = elem class:'debug' style:'position:absolute; z-index:1; bottom:10px; left:750px;' parent:@elem
+
+        @worldSpeed = @value text:'speed' value: world.speed.toFixed(1), reset:@resetWorldSpeed, incr:@incrWorldSpeed, decr:@decrWorldSpeed
+        @brightness = @value text:'light' value: rts.getBrightness().toFixed(1), reset:rts.resetBrightness, incr:rts.incrBrightness, decr:rts.decrBrightness
+        @toggles    = {}
+                
+        setInfo   = (v) -> prefs.set 'info' v
+        getInfo   =     -> prefs.get 'info'
+        setCannon = (v) -> prefs.set 'get' v
+        getCannon =     -> prefs.get 'get'
+        
+        @toggle text:'info'   set: setInfo, get: getInfo
+        @toggle text:'wire'                 parent:@mats, set: Materials.setWire, get: Materials.getWire
+        @toggle text:'flat'                 parent:@mats, set: Materials.setFlat, get: Materials.getFlat
+        @toggle text:'lable'  pref:'lable'  parent:@mats,  set: world.setLabels,  get: world.getLabels
+        @toggle text:'axes'   pref:'axes'   parent:@help, obj: rts.axesHelper,         key:'visible'
+        @toggle text:'arrow'  pref:'arrow'  parent:@help, obj: rts.arrowHelper,        key:'visible'
+        # @toggle text:'center' pref:'center' parent:@help, obj: rts.centerHelper,       key:'visible'
+        @toggle text:'cannon' pref:'cannon' parent:@help, set: setCannon, get: getCannon
+        @toggle text:'shadow' pref:'shadow' parent:@shdw, obj: rts.shadowCameraHelper, key:'visible'
+        @toggle text:'light'  pref:'light'  parent:@shdw, obj: rts.lightShadowHelper,  key:'visible'
+        @toggle text:'grid'   pref:'grid'   parent:@grid, obj: rts.gridHelper,         key:'visible'
+        @toggle text:'floor'  pref:'floor'  parent:@grid, obj: world.floor,            key:'visible'
+        
+        @button text:'camera' parent:@tool, click: -> rts.resetCamera()
+        @button text:'front'  parent:@tool, click: -> rts.resetCamera 'front'
+        @button text:'side'   parent:@tool, click: -> rts.resetCamera 'side'
+        @button text:'top'    parent:@tool, click: -> rts.resetCamera 'top'
+                
+        document.body.appendChild @elem
+        
+        post.on 'worldSpeed'   @updateWorldSpeed
+        post.on 'brightness'   @updateBrightness
+        post.on 'toggle'       @doToggle
+        
+    show: => @elem.style.display = 'block'
+    hide: => @elem.style.display = 'none'
+        
+    del: -> 
+    
+        post.removeListener 'worldSpeed' @updateWorldSpeed
+        @elem.remove()
+        
+    # 00000000   00000000   0000000  00000000  000000000  
+    # 000   000  000       000       000          000     
+    # 0000000    0000000   0000000   0000000      000     
+    # 000   000  000            000  000          000     
+    # 000   000  00000000  0000000   00000000     000     
+    
+    resetWorldSpeed: => world.resetSpeed()
+    
+    # 000   000   0000000   00000000   000      0000000    
+    # 000 0 000  000   000  000   000  000      000   000  
+    # 000000000  000   000  0000000    000      000   000  
+    # 000   000  000   000  000   000  000      000   000  
+    # 00     00   0000000   000   000  0000000  0000000    
+    
+    incrWorldSpeed: => world.incrSpeed()
+    decrWorldSpeed: => world.decrSpeed()
+    updateWorldSpeed: =>  
+        @worldSpeed?.children[2].innerHTML = world.speed.toFixed 1
+        0
+
+    updateBrightness: =>  
+        @brightness?.children[2].innerHTML = rts.getBrightness().toFixed 1
+        0
+        
+    value: (cfg) ->
+        
+        lbl = elem class:'label' text:cfg.text
+        val = elem class:'value' text:cfg.value, click:cfg.reset
+        inc = elem class:'incr'  text:'>' click:cfg.incr
+        dec = elem class:'decr'  text:'<' click:cfg.decr
+        box = elem class:'box'   children: [lbl, dec, val, inc], parent:@elem
+        
+    button: (cfg) -> elem class:'btn' text:cfg.text, click:cfg.click, parent:cfg.parent ? @elem
+        
+    @tglBtn: (btn, cfg) ->
+        
+        if cfg.get is func and cfg.set is func
+            cfg.set not cfg.get()
+        else
+            cfg.obj[cfg.key] = not cfg.obj[cfg.key]
+
+        if cfg.get is func
+            val = cfg.get()
+        else
+            val = cfg.obj[cfg.key]
+            
+        if cfg.pref
+            prefs.set cfg.pref, val
+            
+        btn.classList[val ? 'add' : 'remove'] 'on'
+            
+        cfg.cb? val
+    
+    toggle: (cfg) ->
+        
+        tgl = (cfg) -> (event) -> 
+            
+            Debug.tglBtn btn, cfg
+                                
+        btn = elem class:'btn' text:cfg.text, click:tgl(cfg), parent:cfg.parent ? @elem
+        
+        if cfg.get is func
+            val = cfg.get()
+        else if cfg.pref
+            val = prefs.get cfg.pref
+        else
+            val = cfg.obj[cfg.key]
+            
+        val = false if not val
+        
+        if cfg.set is func
+            cfg.set val
+        else
+            cfg.obj[cfg.key] = val
+            
+        if val
+            btn.classList.add 'on'
+            
+        btn.cfg = cfg
+        @toggles[cfg.text] = btn
+        btn
+        
+    doToggle: (name) =>  
+    
+        t = @toggles[name]
+        Debug.tglBtn t, t.cfg
+        
+    clampZero: (v,d,m) ->
+        v += d
+        v = Math.max 0, v
+        v = Math.min v, m
+        v = 0 if v < 0.01
+        v
+            
+module.exports = Debug

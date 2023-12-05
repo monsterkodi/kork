@@ -1,0 +1,142 @@
+###
+ 0000000   0000000   000   000   0000000  000000000  00000000   000   000   0000000  000000000
+000       000   000  0000  000  000          000     000   000  000   000  000          000   
+000       000   000  000 0 000  0000000      000     0000000    000   000  000          000   
+000       000   000  000  0000       000     000     000   000  000   000  000          000   
+ 0000000   0000000   000   000  0000000      000     000   000   0000000    0000000     000   
+###
+        
+function Construct
+
+    @: ->
+        
+        @meshes = {}
+        
+    # 000  000   000  000  000000000  
+    # 000  0000  000  000     000     
+    # 000  000 0 000  000     000     
+    # 000  000  0000  000     000     
+    # 000  000   000  000     000     
+    
+    init: -> 
+        
+        @initLandscape()
+        
+    flat: (x, y, size=200) ->
+        
+        geom = new PlaneGeometry size, size, 1, 1
+        geom.translate x, y, 0
+        geom
+        
+    borderCos: (radius, size) ->
+        
+        border = 0.94
+        
+        if abs(radius/size) > border*0.5
+            -1
+        else
+            Math.cos(2*Math.PI*(radius/size)/border)
+        
+    hill: (x, y, size=200, height=40) ->
+        
+        geom = new PlaneGeometry size, size, 20, 20
+        
+        for vertex in 0...geom.attributes.position.count
+            px = geom.attributes.position.array[vertex*3+0]
+            py = geom.attributes.position.array[vertex*3+1]
+            vr = Math.sqrt px*px+py*py
+            mr = min vr, size*0.5
+            geom.attributes.position.array[vertex*3+2] = height*0.5*(1+@borderCos(mr, size))
+            
+        geom.translate x, y, 0
+        geom
+        
+    hole: (x, y, size=200, depth=40) -> 
+    
+        geom = new PlaneGeometry size, size, 20, 20
+        
+        for vertex in 0...geom.attributes.position.count
+            px = geom.attributes.position.array[vertex*3+0]
+            py = geom.attributes.position.array[vertex*3+1]
+            vr = Math.sqrt px*px+py*py
+            mr = min vr, size/2
+            geom.attributes.position.array[vertex*3+2] = -(depth*0.5*(1+@borderCos(mr, size)))
+            
+        geom.translate x, y, 0
+        geom
+        
+    initLandscape: ->
+
+        geoms = []
+        
+        size = 100
+
+        for x in -1..1
+            for y in -1..1
+                if x == y == 0
+                    geoms.push @flat 0 0 size
+                    continue
+                geoms.push switch randInt 3
+                    0 ➜ @hill(x*size, y*size, size, size/4)
+                    1 ➜ @hole(x*size, y*size, size, size/4)
+                    2 ➜ @flat(x*size, y*size, size)
+                    
+        size = 150
+        so   = 300
+        for xo in -1..1
+            for yo in -1..1
+                continue if xo == yo == 0
+                for x in 0..1
+                    for y in 0..1
+                        geoms.push switch randInt 3
+                            0 ➜ @hill((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            1 ➜ @hole((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            2 ➜ @flat((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size)
+
+        size = 300
+        for x in -2..2
+            for y in -2..2
+                continue if abs(y)<2 and abs(x)<2
+                geoms.push switch randInt 3
+                    0 ➜ @hill(x*size, y*size, size, size/4)
+                    1 ➜ @hole(x*size, y*size, size, size/4)
+                    2 ➜ @flat(x*size, y*size, size, size/4)
+
+        size = 750
+        so   = 1500
+        for xo in -1..1
+            for yo in -1..1
+                continue if xo == yo == 0
+                for x in 0..1
+                    for y in 0..1
+                        geoms.push switch randInt 3
+                            0 ➜ @hill((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            1 ➜ @hole((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            2 ➜ @flat((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size)
+
+        size = 2250
+        so   = 4500
+        for xo in -1..1
+            for yo in -1..1
+                continue if xo == yo == 0
+                for x in 0..1
+                    for y in 0..1
+                        geoms.push switch randInt 3
+                            0 ➜ @hill((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            1 ➜ @hole((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, size/4)
+                            2 ➜ @flat((x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size)
+                            
+                    
+        geom = Geom.merge geoms
+        
+        geom.computeVertexNormals()
+        geom.computeBoundingSphere()
+        
+        landscape = new Mesh geom, Materials.landscape
+        landscape.setShadow()
+        landscape.name = 'landscape'
+        
+        @meshes.landscape = landscape
+
+module.exports = Construct
+

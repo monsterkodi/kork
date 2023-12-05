@@ -1,0 +1,36 @@
+###
+  000  000   000  00000000   0000000   
+  000  0000  000  000       000   000  
+  000  000 0 000  000000    000   000  
+  000  000  0000  000       000   000  
+  000  000   000  000        0000000   
+###
+
+class Info
+
+    @: ->
+                    
+        @info    = elem class:'info' style:'bottom:10px; right:20px;'
+        
+        document.body.appendChild @info
+          
+    del: -> 
+        @info.remove()
+        
+    # 0000000    00000000    0000000   000   000
+    # 000   000  000   000  000   000  000 0 000
+    # 000   000  0000000    000000000  000000000
+    # 000   000  000   000  000   000  000   000
+    # 0000000    000   000  000   000  00     00
+                
+    draw: (info) =>
+        
+        @info.innerHTML  = ''
+
+        add = (text) => elem class:'infoText' parent:@info, text:text
+        
+        for k,v of info
+            add "#{k} #{v}"
+            
+module.exports = Info
+

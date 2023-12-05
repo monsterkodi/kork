@@ -1,0 +1,45 @@
+{ EventDispatcher } = require 'three'
+
+class PointerLock extends EventDispatcher 
+
+    @: (domElement) ->
+
+        super()
+
+        @domElement = domElement
+        @isLocked = false
+
+        @connect()
+
+    connect: ->
+
+        # @domElement.ownerDocument.addEventListener 'mousemove'         @onMouseMove
+        @domElement.ownerDocument.addEventListener 'pointerlockchange' @onPointerLockChange
+        @domElement.ownerDocument.addEventListener 'pointerlockerror'  @onPointerLockError
+
+    disconnect: ->
+
+        # @domElement.ownerDocument.removeEventListener 'mousemove'         @onMouseMove 
+        @domElement.ownerDocument.removeEventListener 'pointerlockchange' @onPointerLockChange 
+        @domElement.ownerDocument.removeEventListener 'pointerlockerror'  @onPointerLockError 
+
+    dispose: -> @disconnect()
+
+    lock:   -> @domElement.requestPointerLock()
+    unlock: -> @domElement.ownerDocument.exitPointerLock()
+
+    onMouseMove: (event) =>
+    
+        if not @isLocked ➜ return
+    
+        movementX = event.movementX or event.mozMovementX or event.webkitMovementX or 0
+        movementY = event.movementY or event.mozMovementY or event.webkitMovementY or 0
+    
+        # post.emit 'pointerLock' movementX, movementY, event
+        world.player.onPointerLock movementX, movementY, event
+    
+    onPointerLockChange: => @isLocked = @domElement.ownerDocument.pointerLockElement == @domElement
+    
+    onPointerLockError:  => error 'PointerLock: Unable to use Pointer Lock API'
+
+module.exports = PointerLock

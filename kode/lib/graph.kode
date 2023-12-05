@@ -1,0 +1,63 @@
+###
+ 0000000   00000000    0000000   00000000   000   000
+000        000   000  000   000  000   000  000   000
+000  0000  0000000    000000000  00000000   000000000
+000   000  000   000  000   000  000        000   000
+ 0000000   000   000  000   000  000        000   000
+###
+
+class Graph
+
+    @graph:       null
+    @balance:     []
+    @avgs:        [[],[],[],[]]
+    @avgsNum:     100
+    @avgsSecs:    10 
+    
+    @: ->
+        
+        @width     = 4*Graph.avgsNum*2
+        @height    = 100
+        @size      = vec @width*window.devicePixelRatio, @height*window.devicePixelRatio
+        
+        @canvas = elem 'canvas', 
+            class:  "graph"
+            width:  @size.x
+            height: @size.y
+
+        y = parseInt -@height/2
+        x = parseInt -@width/2
+        @canvas.style.transform = "translate3d(#{x}px, #{y}px, 0px) scale3d(#{1/window.devicePixelRatio}, -#{1/window.devicePixelRatio}, 1)"
+            
+        $("#main").appendChild @canvas
+        
+        post.on 'tick', @draw
+        
+    del: -> 
+        
+        post.removeListener 'tick', @draw
+        
+        @canvas.remove()
+            
+    # 0000000    00000000    0000000   000   000
+    # 000   000  000   000  000   000  000 0 000
+    # 000   000  0000000    000000000  000000000
+    # 000   000  000   000  000   000  000   000
+    # 0000000    000   000  000   000  00     00
+                
+    draw: =>
+        
+        @canvas.height = @canvas.height
+        ctx = @canvas.getContext '2d'       
+        
+    @toggle: -> 
+        
+        if @graph
+            @graph.del()
+            @graph = null
+            # prefs.set 'graph', false
+        else
+            # prefs.set 'graph', true
+            @graph = new Graph
+                            
+module.exports = Graph

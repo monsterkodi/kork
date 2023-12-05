@@ -1,0 +1,605 @@
+###
+ 0000000   00000000   0000000   00     00  00000000  000000000  00000000   000   000
+000        000       000   000  000   000  000          000     000   000   000 000 
+000  0000  0000000   000   000  000000000  0000000      000     0000000      00000  
+000   000  000       000   000  000 0 000  000          000     000   000     000   
+ 0000000   00000000   0000000   000   000  00000000     000     000   000     000   
+###
+
+CSG       = require "../lib/csg"
+geomMerge = require "../lib/merge"
+
+class Geometry
+    
+    @union:     (a,b) -> CSG.toGeometry CSG.fromGeometry(a).union     CSG.fromGeometry b
+    @subtract:  (a,b) -> CSG.toGeometry CSG.fromGeometry(a).subtract  CSG.fromGeometry b
+    @intersect: (a,b) -> CSG.toGeometry CSG.fromGeometry(a).intersect CSG.fromGeometry b
+    @merge: ->
+        if arguments.length == 1 and arguments[0] is Array
+            geomMerge arguments[0]
+        else
+            geomMerge.apply null, [arguments]
+    
+    @test: ->
+        
+        @subtract @box(), @box(0.5, 0.5)
+                
+    # 0000000     0000000   000   000  
+    # 000   000  000   000   000 000   
+    # 0000000    000   000    00000    
+    # 000   000  000   000   000 000   
+    # 0000000     0000000   000   000  
+    
+    @box: (cfg={}) ->
+        
+        if cfg.size?
+            if cfg.size is num
+                x = y = z = cfg.size
+            else
+                s = vec cfg.size
+                x = s.x
+                y = s.y
+                z = s.z
+        else
+            x = cfg.width  ? 1
+            y = cfg.depth  ? 1
+            z = cfg.height ? 1
+        
+        geom = new BoxGeometry x, y, z
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+        
+        geom
+        
+    #  0000000  00000000   000   000  00000000  00000000   00000000  
+    # 000       000   000  000   000  000       000   000  000       
+    # 0000000   00000000   000000000  0000000   0000000    0000000   
+    #      000  000        000   000  000       000   000  000       
+    # 0000000   000        000   000  00000000  000   000  00000000  
+    
+    @sphere: (cfg={}) ->
+
+        radius = cfg.radius ? 1
+        sgmt   = cfg.sgmt ? 16
+        
+        geom = new SphereGeometry radius, sgmt, sgmt
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+        
+    @halfsphere: (cfg={}) ->
+
+        radius = cfg.radius ? 1
+        sgmt   = cfg.sgmt ? 16
+        
+        geom = new SphereGeometry radius, sgmt, sgmt, 0, 2*Math.PI/2, 0, Math.PI
+
+        if cfg.dir
+            geom.applyQuaternion Quaternion.unitVectors Vector.unitZ, cfg.dir
+
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+        
+    #  0000000  000   000  000      000  000   000  0000000    00000000  00000000   
+    # 000        000 000   000      000  0000  000  000   000  000       000   000  
+    # 000         00000    000      000  000 0 000  000   000  0000000   0000000    
+    # 000          000     000      000  000  0000  000   000  000       000   000  
+    #  0000000     000     0000000  000  000   000  0000000    00000000  000   000  
+    
+    @cylinder: (cfg={}) ->
+        
+        height = cfg.height ? 1 
+        radius = cfg.radius ? 0.5 
+        sgmt   = cfg.sgmt ? 24
+        
+        geom = new CylinderGeometry radius, radius, height, sgmt
+        
+        if cfg.dir
+            geom.applyQuaternion Quaternion.unitVectors Vector.unitY, cfg.dir
+        else
+            geom.rotateX Math.PI/2
+
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+        
+        geom
+        
+    #  0000000  000   000  000      000  000   000  0000000     0000000   000   000  000   000  000000000  
+    # 000        000 000   000      000  0000  000  000   000  000   000  0000  000  000   000     000     
+    # 000         00000    000      000  000 0 000  000   000  000   000  000 0 000  000   000     000     
+    # 000          000     000      000  000  0000  000   000  000   000  000  0000  000   000     000     
+    #  0000000     000     0000000  000  000   000  0000000     0000000   000   000   0000000      000     
+    
+    @cylindonut: (height=1, outerRadius=1, innerRadius=outerRadius/2, sgmt=24) ->
+        
+        geom  = @cylinder height:height, radius:outerRadius, sgmt:sgmt
+        inner = @cylinder height:height, radius:innerRadius, sgmt:sgmt
+        geom  = @subtract geom, inner
+        geom
+        
+    # 00000000   000  000      000      
+    # 000   000  000  000      000      
+    # 00000000   000  000      000      
+    # 000        000  000      000      
+    # 000        000  0000000  0000000  
+    
+    @pill: (cfg={}) ->
+
+        l = cfg.length ? 1
+        r = cfg.radius ? 0.5
+        s = cfg.sgmt ? 8
+        
+        top = new SphereGeometry r, s, s/2, 0, 2*Math.PI, 0, Math.PI/2
+        top.translate 0 l/2 0
+        mid = new CylinderGeometry r, r, l, s, 1 true
+        bot = new SphereGeometry r, s, s/2, 0, 2*Math.PI, Math.PI/2, Math.PI/2
+        bot.translate 0 -l/2 0
+        
+        geom = @merge top, mid, bot
+        
+        geom.rotateX Math.PI/2
+        
+        if cfg.dir
+            geom.applyQuaternion Quaternion.unitVectors Vector.unitZ, cfg.dir
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+        
+        geom
+        
+    @cylbox: (cfg={}) ->
+        
+        l = cfg.length ? 1
+        h = cfg.height ? 1
+        r = cfg.radius ? 0.5
+        s = cfg.sgmt ? 16
+        
+        head = new CylinderGeometry r, r, h, s, 1, false, deg2rad(-90), deg2rad(180)
+        head.translate 0 0 (l-2*r)/2
+        # head.rotateX Math.PI/2
+        
+        box = Geom.box size:[2*r, h, l-2*r]
+
+        tail = new CylinderGeometry r, r, h, s, 1, false, deg2rad(90), deg2rad(180)
+        tail.translate 0 0 -(l-2*r)/2
+        # tail.rotateX Math.PI/2
+        
+        geom = @merge box, head, tail
+        
+        if cfg.dir
+            geom.applyQuaternion Quaternion.unitVectors Vector.unitZ, cfg.dir
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+        
+    #  0000000   000   000   0000000   0000000    
+    # 000   000  000   000  000   000  000   000  
+    # 000 00 00  000   000  000000000  000   000  
+    # 000 0000   000   000  000   000  000   000  
+    #  00000 00   0000000   000   000  0000000    
+    
+    @quad: (cfg={}) ->
+        
+        sz = cfg.size ? vec(cfg.size) : vec 1 1
+
+        normal = cfg.normal ? Vector.unitZ
+
+        geom = new PlaneGeometry sz.x, sz.y
+        geom.applyQuaternion Quaternion.unitVectors Vector.unitZ, normal
+
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+        
+    #  0000000   0000000   00000000   000   000  00000000  00000000   
+    # 000       000   000  000   000  0000  000  000       000   000  
+    # 000       000   000  0000000    000 0 000  0000000   0000000    
+    # 000       000   000  000   000  000  0000  000       000   000  
+    #  0000000   0000000   000   000  000   000  00000000  000   000  
+    
+    @corner: (cfg={}) ->
+        
+        rx  = deg2rad cfg.rx ? 0
+        ry  = deg2rad cfg.ry ? 0
+        rz  = deg2rad cfg.rz ? 0
+        radius = cfg.radius ? 1
+        sgmt   = cfg.sgmt ? 8
+        
+        geom = new SphereGeometry radius, sgmt, sgmt, 0, Math.PI/2, 0, Math.PI/2
+        geom.rotateX Math.PI/2
+        geom.rotateZ Math.PI
+
+        matrix = new THREE.Matrix4
+        matrix.makeRotationFromEuler new THREE.Euler rx, ry, rz
+        geom.applyMatrix4 matrix
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+                
+    # 00000000   000  00000000   0000000   0000000   00000000   
+    # 000   000  000  000       000       000   000  000   000  
+    # 00000000   000  0000000   000       000000000  00000000   
+    # 000        000  000       000       000   000  000        
+    # 000        000  00000000   0000000  000   000  000        
+    
+    @piecap: (cfg={}) ->
+        
+        rx  = deg2rad cfg.rx ? 0
+        ry  = deg2rad cfg.ry ? 0
+        rz  = deg2rad cfg.rz ? 0
+        radius = cfg.radius ? 1
+        sgmt   = cfg.sgmt ? 8
+        
+        geom = new CircleGeometry radius, sgmt, 0, Math.PI/2
+
+        matrix = new THREE.Matrix4
+        matrix.makeRotationFromEuler new THREE.Euler rx, ry, rz
+        geom.applyMatrix4 matrix
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+                
+    #  0000000  000   000  000       0000000  000      000   0000000  00000000  
+    # 000        000 000   000      000       000      000  000       000       
+    # 000         00000    000      0000000   000      000  000       0000000   
+    # 000          000     000           000  000      000  000       000       
+    #  0000000     000     0000000  0000000   0000000  000   0000000  00000000  
+    
+    @cylslice: (cfg={}) ->
+        
+        dir    = cfg.dir   ? Vector.unitZ
+        start  = cfg.start ? Vector.unitX
+        radius = cfg.radius ? 0.5
+        length = cfg.length ? 1
+        sgmt   = cfg.sgmt ? 8
+        
+        geom = new CylinderGeometry radius, radius, length, sgmt, 1, true, 0, Math.PI/2
+        dirq = Quaternion.unitVectors Vector.unitY, dir
+        geom.applyQuaternion dirq
+        geom.applyQuaternion Quaternion.unitVectors Vector.unitX.clone().applyQuaternion(dirq), start
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+        
+    # 00000000   000  00000000  
+    # 000   000  000  000       
+    # 00000000   000  0000000   
+    # 000        000  000       
+    # 000        000  00000000  
+    
+    @pie: (cfg={}) ->
+        
+        dir    = cfg.dir   ? Vector.unitX
+        start  = cfg.start ? Vector.unitY
+        radius = cfg.radius ? 0.5
+        length = cfg.length ? 1
+        sgmt   = cfg.sgmt ? 8
+                
+        side1 = @quad size:[length, radius], normal:Vector.minusY, pos:[0 0 radius/2]
+        side2 = @quad size:[length, radius], normal:Vector.minusZ, pos:[0 radius/2 0]
+        
+        cylnd = new CylinderGeometry radius, radius, length, sgmt, 1, true, 0, Math.PI/2
+        cylnd.rotateZ deg2rad 90
+        
+        geom = @merge side1, side2, cylnd
+               
+        matrix = new THREE.Matrix4
+        matrix.makeBasis dir, start, dir.crossed start
+        geom.applyMatrix4 matrix
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+            
+        geom
+                
+    # 00000000    0000000   000   000  000   000  0000000    00000000  0000000    0000000     0000000   000   000  
+    # 000   000  000   000  000   000  0000  000  000   000  000       000   000  000   000  000   000   000 000   
+    # 0000000    000   000  000   000  000 0 000  000   000  0000000   000   000  0000000    000   000    00000    
+    # 000   000  000   000  000   000  000  0000  000   000  000       000   000  000   000  000   000   000 000   
+    # 000   000   0000000    0000000   000   000  0000000    00000000  0000000    0000000     0000000   000   000  
+    
+    @roundedBox: (cfg={}) ->
+
+        cr = cfg.radius ? 0.2
+        sz = cfg.size ? vec(cfg.size) : vec 1 1 1
+        
+        frame = @roundedFrame cfg
+        
+        fb   = @pie radius:cr, dir:Vector.unitX,  start:Vector.minusZ, length:sz.x-cr*2, pos:[0,  sz.y/2-cr, -sz.z/2+cr]
+        bb   = @pie radius:cr, dir:Vector.minusX, start:Vector.minusZ, length:sz.x-cr*2, pos:[0, -sz.y/2+cr, -sz.z/2+cr]
+        
+        botfr = @merge fb, bb
+
+        if cfg.pos
+            p = vec cfg.pos
+            botfr.translate p.x, p.y, p.z
+        
+        geom = @merge frame, botfr
+        
+    @roundedBoxSides: (cfg={}) ->
+
+        cr = cfg.radius ? 0.2
+        sz = cfg.size ? vec(cfg.size) : vec 1 1 1
+        
+        rs = @quad size:[sz.z-cr*2, sz.y-cr*2], normal:Vector.unitX,  pos:[ sz.x/2-cr/2, 0, 0]
+        ls = @quad size:[sz.z-cr*2, sz.y-cr*2], normal:Vector.minusX, pos:[-sz.x/2+cr/2, 0, 0]
+        fs = @quad size:[sz.x-cr*2, sz.z-cr*2], normal:Vector.unitY,  pos:[0,  sz.y/2-cr/2, 0]
+        bs = @quad size:[sz.x-cr*2, sz.z-cr*2], normal:Vector.minusY, pos:[0, -sz.y/2+cr/2, 0]
+        ds = @quad size:[sz.x-cr*2, sz.y-cr*2], normal:Vector.minusZ, pos:[0, 0, -sz.z/2+cr/2]
+        us = @quad size:[sz.x-cr*2, sz.y-cr*2], normal:Vector.unitZ,  pos:[0, 0,  sz.z/2-cr/2]
+
+        geom = @merge rs, ls, fs, bs, ds, us
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+        
+        geom
+        
+    # 00000000    0000000   000   000  000   000  0000000    00000000  0000000    00000000  00000000    0000000   00     00  00000000  
+    # 000   000  000   000  000   000  0000  000  000   000  000       000   000  000       000   000  000   000  000   000  000       
+    # 0000000    000   000  000   000  000 0 000  000   000  0000000   000   000  000000    0000000    000000000  000000000  0000000   
+    # 000   000  000   000  000   000  000  0000  000   000  000       000   000  000       000   000  000   000  000 0 000  000       
+    # 000   000   0000000    0000000   000   000  0000000    00000000  0000000    000       000   000  000   000  000   000  00000000  
+    
+    @roundedFrame: (cfg={}) ->        
+
+        cr = cfg.radius ? 0.2
+        sz = cfg.size ? vec(cfg.size) : vec 1 1 1
+
+        ft   = @pie radius:cr, dir:Vector.minusX, start:Vector.unitZ,  length:sz.x-cr*2, pos:[0, sz.y/2-cr, sz.z/2-cr]
+        bt   = @pie radius:cr, dir:Vector.unitX,  start:Vector.unitZ,  length:sz.x-cr*2, pos:[0, -sz.y/2+cr, sz.z/2-cr]
+        lt   = @pie radius:cr, dir:Vector.minusY, start:Vector.unitZ,  length:sz.y-cr*2, pos:[-sz.x/2+cr, 0, sz.z/2-cr]
+        rt   = @pie radius:cr, dir:Vector.unitY,  start:Vector.unitZ,  length:sz.y-cr*2, pos:[ sz.x/2-cr, 0, sz.z/2-cr]
+                                       
+        lfm  = @pie radius:cr, dir:Vector.unitZ,  start:Vector.unitY,  length:sz.z-cr*2, pos:[-sz.x/2+cr,  sz.y/2-cr, 0]
+        lbm  = @pie radius:cr, dir:Vector.minusZ, start:Vector.minusY, length:sz.z-cr*2, pos:[-sz.x/2+cr, -sz.y/2+cr, 0]
+        rfm  = @pie radius:cr, dir:Vector.unitZ,  start:Vector.unitX,  length:sz.z-cr*2, pos:[ sz.x/2-cr,  sz.y/2-cr, 0]
+        rbm  = @pie radius:cr, dir:Vector.minusZ, start:Vector.unitX,  length:sz.z-cr*2, pos:[ sz.x/2-cr, -sz.y/2+cr, 0]
+        
+        # fb   = @pie radius:cr, dir:Vector.unitX,  start:Vector.minusZ, length:sz.x-cr*2, pos:[0,  sz.y/2-cr, -sz.z/2+cr]
+        # bb   = @pie radius:cr, dir:Vector.minusX, start:Vector.minusZ, length:sz.x-cr*2, pos:[0, -sz.y/2+cr, -sz.z/2+cr]
+        lb   = @pie radius:cr, dir:Vector.unitY,  start:Vector.minusZ, length:sz.y-cr*2, pos:[-sz.x/2+cr, 0, -sz.z/2+cr]
+        rb   = @pie radius:cr, dir:Vector.minusY, start:Vector.minusZ, length:sz.y-cr*2, pos:[ sz.x/2-cr, 0, -sz.z/2+cr]
+        
+        rft = @corner radius:cr, rx:0, ry:0, rz: 0, pos:[sz.x/2-cr,  sz.y/2-cr, sz.z/2-cr]
+        lft = @corner radius:cr, rx:0, ry:0, rz:90, pos:[-sz.x/2+cr, sz.y/2-cr, sz.z/2-cr]
+
+        rfb = @corner radius:cr, rx:0, ry:180, rz:90, pos:[sz.x/2-cr, sz.y/2-cr, -sz.z/2+cr]
+        lfb = @corner radius:cr, rx:0, ry:180, rz:0, pos:[-sz.x/2+cr, sz.y/2-cr, -sz.z/2+cr]
+
+        rbt = @corner radius:cr, rx:0, ry:0, rz:-90, pos:[sz.x/2-cr,  -sz.y/2+cr, sz.z/2-cr]
+        lbt = @corner radius:cr, rx:0, ry:0, rz:180, pos:[-sz.x/2+cr, -sz.y/2+cr, sz.z/2-cr]
+
+        rbb = @corner radius:cr, rx:0, ry:180, rz:180, pos:[sz.x/2-cr,  -sz.y/2+cr, -sz.z/2+cr]
+        lbb = @corner radius:cr, rx:0, ry:180, rz:-90, pos:[-sz.x/2+cr, -sz.y/2+cr, -sz.z/2+cr]
+        
+        lfc = @piecap radius:cr, segs:8, pos:[-sz.x/2+cr,  sz.y/2-cr, -sz.z/2+cr], ry:90
+        rfc = @piecap radius:cr, segs:8, pos:[ sz.x/2-cr,  sz.y/2-cr, -sz.z/2+cr], rz:90 ry:-90
+        lbc = @piecap radius:cr, segs:8, pos:[-sz.x/2+cr, -sz.y/2+cr, -sz.z/2+cr], rz:-90 ry:90
+        rbc = @piecap radius:cr, segs:8, pos:[ sz.x/2-cr, -sz.y/2+cr, -sz.z/2+cr], rz:180 ry:-90
+        
+        corns = @merge rft, lft, rbt, lbt, rfb, lfb, rbb, lbb 
+        frame = @merge ft, bt, lt, rt, lfm, lbm, rfm, rbm, lb, rb
+        caps  = @merge lfc, rfc, lbc, rbc
+        box   = @merge frame, corns, caps
+        
+        if cfg.pos
+            p = vec cfg.pos
+            box.translate p.x, p.y, p.z
+            
+        box
+        
+    # 00000000    0000000   000   000  000   000  0000000    00000000  0000000    0000000     0000000    0000000  00000000  
+    # 000   000  000   000  000   000  0000  000  000   000  000       000   000  000   000  000   000  000       000       
+    # 0000000    000   000  000   000  000 0 000  000   000  0000000   000   000  0000000    000000000  0000000   0000000   
+    # 000   000  000   000  000   000  000  0000  000   000  000       000   000  000   000  000   000       000  000       
+    # 000   000   0000000    0000000   000   000  0000000    00000000  0000000    0000000    000   000  0000000   00000000  
+    
+    @roundedBase: (cfg={}) ->        
+
+        cr = cfg.radius ? 0.2
+        sz = cfg.size ? vec(cfg.size) : vec 1 1 cr
+
+        lb   = @pie radius:cr, dir:Vector.unitY,  start:Vector.minusZ, length:sz.y-cr*2, pos:[-sz.x/2+cr, 0, -sz.z/2+cr]
+        rb   = @pie radius:cr, dir:Vector.minusY, start:Vector.minusZ, length:sz.y-cr*2, pos:[ sz.x/2-cr, 0, -sz.z/2+cr]
+        fb   = @pie radius:cr, dir:Vector.unitX,  start:Vector.minusZ, length:sz.x-cr*2, pos:[0,  sz.y/2-cr, -sz.z/2+cr]
+        bb   = @pie radius:cr, dir:Vector.minusX, start:Vector.minusZ, length:sz.x-cr*2, pos:[0, -sz.y/2+cr, -sz.z/2+cr]
+        
+        rfb = @corner radius:cr, rx:0, ry:180, rz:90, pos:[sz.x/2-cr, sz.y/2-cr, -sz.z/2+cr]
+        lfb = @corner radius:cr, rx:0, ry:180, rz:0, pos:[-sz.x/2+cr, sz.y/2-cr, -sz.z/2+cr]
+        rbb = @corner radius:cr, rx:0, ry:180, rz:180, pos:[sz.x/2-cr,  -sz.y/2+cr, -sz.z/2+cr]
+        lbb = @corner radius:cr, rx:0, ry:180, rz:-90, pos:[-sz.x/2+cr, -sz.y/2+cr, -sz.z/2+cr]
+        
+        rfc = @piecap radius:cr, segs:8, pos:[ sz.x/2-cr,  sz.y/2-cr, -sz.z/2+cr]
+        lfc = @piecap radius:cr, segs:8, pos:[-sz.x/2+cr,  sz.y/2-cr, -sz.z/2+cr], rz:90
+        lbc = @piecap radius:cr, segs:8, pos:[-sz.x/2+cr, -sz.y/2+cr, -sz.z/2+cr], rz:180
+        rbc = @piecap radius:cr, segs:8, pos:[ sz.x/2-cr, -sz.y/2+cr, -sz.z/2+cr], rz:-90
+        
+        corns = @merge rfb, lfb, rbb, lbb
+        frame = @merge lb, rb, fb, bb
+        caps  = @merge lfc, rfc, lbc, rbc
+        base  = @merge frame, corns, caps
+        
+        if cfg.pos
+            p = vec cfg.pos
+            base.translate p.x, p.y, p.z
+            
+        base
+        
+    # 000000000  00000000   000   0000000   000   000   0000000   000      00000000  
+    #    000     000   000  000  000   000  0000  000  000        000      000       
+    #    000     0000000    000  000000000  000 0 000  000  0000  000      0000000   
+    #    000     000   000  000  000   000  000  0000  000   000  000      000       
+    #    000     000   000  000  000   000  000   000   0000000   0000000  00000000  
+    
+    @triangle: (cfg={}) ->
+        
+        if cfg.size?
+            if cfg.size is num
+                x = y = z = cfg.size
+            else
+                s = vec cfg.size
+                x = s.x
+                y = s.y
+                z = s.z
+        else
+            x = cfg.width  ? 1
+            y = cfg.depth  ? 1
+            z = cfg.height ? 1
+        
+        geom = new BufferGeometry()
+        
+        xh = x/2
+        yh = y/2
+        zh = z/2
+        
+        vertices = new Float32Array [
+            -xh, -yh, zh,
+            xh, -yh, zh,
+            0,  yh, zh,
+
+            -xh, -yh, -zh,
+            0,  yh, -zh,
+            xh, -yh, -zh,
+            
+            xh, -yh, zh,
+            -xh, -yh, zh,
+            -xh, -yh, -zh,
+            
+            -xh, -yh, -zh,
+            xh, -yh, -zh,
+            xh, -yh, zh,
+            
+            -xh, -yh, zh,
+            0,  yh, zh,
+            0,  yh, -zh,
+
+            0,  yh, -zh,
+            -xh, -yh, -zh,
+            -xh, -yh,  zh,
+            
+            0,  yh, zh,
+            xh, -yh, zh,
+            xh, -yh, -zh,
+            
+            xh, -yh, -zh,
+            0,  yh, -zh,
+            0,  yh, zh,
+        ]
+        
+        geom.setAttribute 'position' new BufferAttribute vertices, 3
+        
+        if cfg.dir
+            geom.applyQuaternion Quaternion.unitVectors Vector.unitY, cfg.dir
+        
+        if cfg.pos
+            p = vec cfg.pos
+            geom.translate p.x, p.y, p.z
+        
+        geom.computeVertexNormals()
+        geom.computeBoundingSphere()
+            
+        geom
+        
+    #  0000000   0000000   00000000   000   000  00000000  00000000   0000000     0000000   000   000  
+    # 000       000   000  000   000  0000  000  000       000   000  000   000  000   000   000 000   
+    # 000       000   000  0000000    000 0 000  0000000   0000000    0000000    000   000    00000    
+    # 000       000   000  000   000  000  0000  000       000   000  000   000  000   000   000 000   
+    #  0000000   0000000   000   000  000   000  00000000  000   000  0000000     0000000   000   000  
+    
+    @cornerBox: (size=1, x=0, y=0, z=0) ->
+                    
+        o = size/2
+        s = 0.9*o
+        i = 0.8*o
+        
+        topside = new BufferGeometry()
+        
+        vertices = new Float32Array [
+            i,  i, o
+            -i,  i, o
+            -i, -i, o
+            i,  i, o
+            -i, -i, o
+            i, -i, o
+            s,  s, s
+            -s,  s, s
+            -i,  i, o
+            s,  s, s
+            -i,  i, o
+            i,  i, o
+            -s,  s, s
+            -s, -s, s
+            -i, -i, o
+            -s,  s, s
+            -i, -i, o
+            -i,  i, o
+            -s, -s, s
+            s, -s, s
+            i, -i, o
+            -s, -s, s
+            i, -i, o
+            -i, -i, o
+            s,  s, s
+            i,  i, o
+            i, -i, o
+            s,  s, s
+            i, -i, o
+            s, -s, s
+        ]
+        
+        topside.setAttribute 'position' new BufferAttribute vertices, 3
+
+        rightside = new BufferGeometry()
+        rightside.copy topside
+        rightside.rotateY deg2rad 90
+
+        leftside = new BufferGeometry()
+        leftside.copy topside
+        leftside.rotateY deg2rad -90
+
+        backside = new BufferGeometry()
+        backside.copy topside
+        backside.rotateX deg2rad -90
+
+        frontside = new BufferGeometry()
+        frontside.copy topside
+        frontside.rotateX deg2rad 90
+
+        bottomside = new BufferGeometry()
+        bottomside.copy topside
+        bottomside.rotateX deg2rad -180
+                
+        cube = @merge topside, rightside, backside, bottomside, leftside, frontside
+        cube.translate x, y, z
+        cube.computeVertexNormals()
+        cube.computeBoundingSphere()
+        cube
+        
+module.exports = Geometry

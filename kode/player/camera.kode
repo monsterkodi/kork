@@ -1,0 +1,222 @@
+###
+00000000   000       0000000   000   000  00000000  00000000          0000000   0000000   00     00  00000000  00000000    0000000 
+000   000  000      000   000   000 000   000       000   000        000       000   000  000   000  000       000   000  000   000
+00000000   000      000000000    00000    0000000   0000000          000       000000000  000000000  0000000   0000000    000000000
+000        000      000   000     000     000       000   000        000       000   000  000 0 000  000       000   000  000   000
+000        0000000  000   000     000     00000000  000   000         0000000  000   000  000   000  00000000  000   000  000   000
+###
+
+{ clamp, post, prefs, reduce } = require 'kxk'
+
+THREE = require 'three'
+Quaternion = require '../lib/quaternion'
+PerspectiveCamera = THREE.PerspectiveCamera
+
+class PlayerCamera extends PerspectiveCamera
+
+    @: (opt) ->
+        
+        width  = opt.view.clientWidth 
+        height = opt.view.clientHeight
+        
+        super 70, width/height, 1, 10000 # fov, aspect, near, far
+        
+        @fov     = 70
+        @size    = vec width, height 
+        @elem    = opt.view
+        @dist    = 30
+        @maxDist = @far/2
+        @minDist = @near*2
+        @center  = vec()
+        @degree  = -10
+        @rotate  = 0
+        @wheelInert = 0
+        @pivotX  = 0
+        @pivotY  = 0
+        @mouse   = vec()
+        @downPos = vec()
+        @centerTarget = vec()
+        @quat         = quat()
+
+        @elem.addEventListener 'mousewheel' @onMouseWheel
+        
+    setPlayer: (@player) -> @update 1
+
+    getPosition: -> vec @position
+    getDir:      -> quat(@quaternion).rotate Vector.minusZ
+    getUp:       -> quat(@quaternion).rotate Vector.unitY
+    getRight:    -> quat(@quaternion).rotate Vector.unitX
+
+    del: =>
+        
+        @elem.removeEventListener  'mousewheel' @onMouseWheel
+    
+    onKeyDown: (combo) ->
+        
+        switch combo
+            'r' ➜ return @startPivotDown()
+            'v' ➜ return @startPivotUp()
+        
+        'unhandled'
+        
+    onKeyUp: (combo) ->
+
+        switch combo
+            'r' 'v' ➜ return @stopPivot()
+        
+        'unhandled'
+        
+    # 00000000   000  000   000   0000000   000000000  
+    # 000   000  000  000   000  000   000     000     
+    # 00000000   000   000 000   000   000     000     
+    # 000        000     000     000   000     000     
+    # 000        000      0       0000000      000     
+    
+    pivot: (y) ->
+                
+        @degree += y
+        
+    startPivotUp: ->
+        
+        @pivotY = 1
+        @startPivot()
+        
+    startPivotDown: ->
+        
+        @pivotY = -1
+        @startPivot()
+        
+    stopPivot: ->
+        
+        @pivoting = false
+        @pivotY = 0
+       
+    startPivot: -> 
+        
+        if not @pivoting
+            rts.animate @pivotCenter
+            @pivoting = true
+            
+    pivotCenter: (deltaSeconds) =>
+        
+        return if not @pivoting
+
+        @pivot @pivotY
+        
+        rts.animate @pivotCenter
+        
+    # 000   000  000   000  00000000  00000000  000      
+    # 000 0 000  000   000  000       000       000      
+    # 000000000  000000000  0000000   0000000   000      
+    # 000   000  000   000  000       000       000      
+    # 00     00  000   000  00000000  00000000  0000000  
+    
+    onMouseWheel: (event) => 
+    
+        if @wheelInert > 0 and event.wheelDelta < 0
+            @wheelInert = 0
+            return
+            
+        if @wheelInert < 0 and event.wheelDelta > 0
+            @wheelInert = 0
+            return
+                    
+        if Math.abs(@wheelInert) < 0.0001
+            @wheelInert += event.wheelDelta * (1+(@dist/@maxDist)*3) * 0.00005
+        else
+            @wheelInert += event.wheelDelta * (1+(@dist/@maxDist)*3) * 0.0002
+            
+        if Math.abs(@wheelInert) > 0.00003
+            @startZoom()
+            
+    # 0000000   0000000    0000000   00     00  
+    #    000   000   000  000   000  000   000  
+    #   000    000   000  000   000  000000000  
+    #  000     000   000  000   000  000 0 000  
+    # 0000000   0000000    0000000   000   000  
+
+    startZoomIn: ->
+        
+        @wheelInert = (1+(@dist/@maxDist)*3)*10
+        @startZoom()
+        
+    startZoomOut: ->
+        
+        @wheelInert = -(1+(@dist/@maxDist)*3)*10
+        @startZoom()
+    
+    startZoom: -> 
+        
+        if not @zooming
+            rts.animate @inertZoom
+            @zooming = true
+            
+    stopZoom: -> 
+        
+        @wheelInert = 0
+        @zooming = false
+    
+    inertZoom: (deltaSeconds) =>
+
+        @setDistFactor 1 - clamp -0.02 0.02 @wheelInert
+        @wheelInert = reduce @wheelInert, deltaSeconds*0.3
+        
+        if Math.abs(@wheelInert) > 0.00000001
+            rts.animate @inertZoom
+        else
+            delete @zooming
+            @wheelInert = 0
+    
+    setDistFactor: (factor) =>
+        
+        @dist = clamp @minDist, @maxDist, @dist*factor
+        
+    setFov: (fov) -> @fov = clamp 2.0 175.0 fov
+    
+    # 00000000   00000000   00000000  00000000   0000000  
+    # 000   000  000   000  000       000       000       
+    # 00000000   0000000    0000000   000000    0000000   
+    # 000        000   000  000       000            000  
+    # 000        000   000  00000000  000       0000000   
+    
+    storePrefs: ->
+        
+        prefs.set 'playerCamera', 
+            degree: @degree 
+            rotate: @rotate 
+            dist:   @dist 
+            center:
+                x: @centerTarget.x
+                y: @centerTarget.y
+                z: @centerTarget.z
+    
+    # 000   000  00000000   0000000     0000000   000000000  00000000  
+    # 000   000  000   000  000   000  000   000     000     000       
+    # 000   000  00000000   000   000  000000000     000     0000000   
+    # 000   000  000        000   000  000   000     000     000       
+    #  0000000   000        0000000    000   000     000     00000000  
+    
+    update: (delta) -> 
+        
+        @degree = clamp -25 -70 @degree
+
+        if @player?.mesh.position
+            
+            playerForward = @player.getForward().projectOnPlane Vector.unitZ
+            cameraForward = @getDir().projectOnPlane Vector.unitZ
+            
+            smoothForward = cameraForward.lerp playerForward, delta*1.2
+            smoothRight   = smoothForward.crossed Vector.unitZ
+            rotquat       = Quaternion.axisAngle smoothRight, @degree
+            
+            Vector.tmp.copy smoothForward.negate().scale(@dist)
+            Vector.tmp.applyQuaternion rotquat
+            
+            Vector.tmp.add @player.mesh.position
+            
+            @position.lerp Vector.tmp, 1 #delta*4
+            
+            @up.set 0 0 1
+            @lookAt @player?.mesh.position
+                    
+module.exports = PlayerCamera
