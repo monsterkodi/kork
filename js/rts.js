@@ -2,7 +2,7 @@
 
 var _k_ = {list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}, isFunc: function (o) {return typeof o === 'function'}}
 
-var Camera, Config, CopyShader, CurveCtrl, Debug, deg2rad, e, EffectComposer, elem, expose, FPS, GridHelper, Info, kxk, Map, Menu, Node, PlayerCamera, PointerLock, post, prefs, rad2deg, randInt, randIntRange, randRange, RenderPass, setShadow, Sound, stopEvent, Text, tmpMatrix, UnrealBloomPass, World, _
+var Camera, Config, CopyShader, Debug, deg2rad, e, EffectComposer, elem, expose, FPS, GridHelper, Info, kxk, Map, Menu, PlayerCamera, PointerLock, post, prefs, rad2deg, randInt, randIntRange, randRange, RenderPass, setShadow, Sound, stopEvent, Text, tmpMatrix, UnrealBloomPass, World, _
 
 kxk = require('kxk')
 _ = require('kxk')._
@@ -96,15 +96,13 @@ World = require('./world/world')
 Map = require('./world/map')
 Camera = require('./lib/camera')
 PlayerCamera = require('./player/camera')
-Node = require('./track/node')
-CurveCtrl = require('./track/curvectrl')
 PointerLock = require('./lib/three/PointerLock')
 tmpMatrix = new THREE.Matrix3
 class RTS
 {
     constructor (view)
     {
-        var cam, canvas, _149_74_
+        var cam, canvas, _147_74_
 
         this.view = view
     
@@ -268,15 +266,15 @@ class RTS
 
     setCamera (cfg = {dist:10,rotate:45,degree:45})
     {
-        var _247_36_, _248_36_, _249_36_, _251_18_
+        var _245_36_, _246_36_, _247_36_, _249_18_
 
         if (this.camera !== this.debugCamera)
         {
             return
         }
-        this.camera.dist = ((_247_36_=cfg.dist) != null ? _247_36_ : 10)
-        this.camera.rotate = ((_248_36_=cfg.rotate) != null ? _248_36_ : 45)
-        this.camera.degree = ((_249_36_=cfg.degree) != null ? _249_36_ : 45)
+        this.camera.dist = ((_245_36_=cfg.dist) != null ? _245_36_ : 10)
+        this.camera.rotate = ((_246_36_=cfg.rotate) != null ? _246_36_ : 45)
+        this.camera.degree = ((_247_36_=cfg.degree) != null ? _247_36_ : 45)
         if ((cfg.pos != null))
         {
             this.camera.focusOnPoint(vec(cfg.pos))
@@ -384,9 +382,9 @@ class RTS
         oldAnimations = this.animations.clone()
         this.animations = []
         var list1 = _k_.list(oldAnimations)
-        for (var _342_22_ = 0; _342_22_ < list1.length; _342_22_++)
+        for (var _340_22_ = 0; _340_22_ < list1.length; _340_22_++)
         {
-            animation = list1[_342_22_]
+            animation = list1[_340_22_]
             animation(delta)
         }
         this.menu.animate(delta)
@@ -402,9 +400,9 @@ class RTS
             oldWorldAnimations = this.worldAnimations.clone()
             this.worldAnimations = []
             var list2 = _k_.list(oldWorldAnimations)
-            for (var _362_26_ = 0; _362_26_ < list2.length; _362_26_++)
+            for (var _360_26_ = 0; _360_26_ < list2.length; _360_26_++)
             {
-                animation = list2[_362_26_]
+                animation = list2[_360_26_]
                 animation(delta * world.speed)
             }
             this.camera.update(delta)
@@ -415,7 +413,7 @@ class RTS
 
     onMouseDown (event)
     {
-        var _388_32_, _388_41_
+        var _386_32_, _386_41_
 
         this.calcMouse(event)
         this.downPos.copy(this.mouse)
@@ -424,7 +422,7 @@ class RTS
         {
             if (event.buttons === 1)
             {
-                if (_k_.isFunc(((_388_32_=this.downHit.mesh) != null ? (_388_41_=_388_32_.handler) != null ? _388_41_.onMouseDown : undefined : undefined)))
+                if (_k_.isFunc(((_386_32_=this.downHit.mesh) != null ? (_386_41_=_386_32_.handler) != null ? _386_41_.onMouseDown : undefined : undefined)))
                 {
                     this.downHit.mesh.handler.onMouseDown(this.downHit,event)
                 }
@@ -435,19 +433,19 @@ class RTS
 
     onMouseUp (event)
     {
-        var hit, moved, _399_19_, _399_25_, _401_24_, _401_30_, _401_39_, _404_19_, _404_25_, _404_34_
+        var hit, moved, _397_19_, _397_25_, _399_24_, _399_30_, _399_39_, _402_19_, _402_25_, _402_34_
 
         this.calcMouse(event)
         hit = this.castRay()
-        if (_k_.isFunc(((_399_19_=this.downHit) != null ? (_399_25_=_399_19_.mesh) != null ? _399_25_.onDragDone : undefined : undefined)))
+        if (_k_.isFunc(((_397_19_=this.downHit) != null ? (_397_25_=_397_19_.mesh) != null ? _397_25_.onDragDone : undefined : undefined)))
         {
             this.downHit.mesh.onDragDone(hit,this.downHit)
         }
-        else if (_k_.isFunc(((_401_24_=this.downHit) != null ? (_401_30_=_401_24_.mesh) != null ? (_401_39_=_401_30_.handler) != null ? _401_39_.onDragDone : undefined : undefined : undefined)))
+        else if (_k_.isFunc(((_399_24_=this.downHit) != null ? (_399_30_=_399_24_.mesh) != null ? (_399_39_=_399_30_.handler) != null ? _399_39_.onDragDone : undefined : undefined : undefined)))
         {
             this.downHit.mesh.handler.onDragDone(hit,this.downHit)
         }
-        if (_k_.isFunc(((_404_19_=this.downHit) != null ? (_404_25_=_404_19_.mesh) != null ? (_404_34_=_404_25_.handler) != null ? _404_34_.onMouseUp : undefined : undefined : undefined)))
+        if (_k_.isFunc(((_402_19_=this.downHit) != null ? (_402_25_=_402_19_.mesh) != null ? (_402_34_=_402_25_.handler) != null ? _402_34_.onMouseUp : undefined : undefined : undefined)))
         {
             this.downHit.mesh.handler.onMouseUp(hit,this.downHit)
         }
@@ -467,7 +465,7 @@ class RTS
 
     onMouseMove (event)
     {
-        var hit, _431_27_, _431_33_, _433_32_, _433_38_, _433_47_, _438_23_, _439_27_, _439_33_, _441_32_, _441_38_, _441_47_, _443_27_, _445_32_, _445_41_
+        var hit, _429_27_, _429_33_, _431_32_, _431_38_, _431_47_, _436_23_, _437_27_, _437_33_, _439_32_, _439_38_, _439_47_, _441_27_, _443_32_, _443_41_
 
         this.pointerLock.onMouseMove(event)
         this.calcMouse(event)
@@ -479,11 +477,11 @@ class RTS
         {
             if (event.buttons === 1)
             {
-                if (_k_.isFunc(((_431_27_=this.downHit) != null ? (_431_33_=_431_27_.mesh) != null ? _431_33_.onDrag : undefined : undefined)))
+                if (_k_.isFunc(((_429_27_=this.downHit) != null ? (_429_33_=_429_27_.mesh) != null ? _429_33_.onDrag : undefined : undefined)))
                 {
                     this.downHit.mesh.onDrag(hit,this.downHit,this.lastHit)
                 }
-                else if (_k_.isFunc(((_433_32_=this.downHit) != null ? (_433_38_=_433_32_.mesh) != null ? (_433_47_=_433_38_.handler) != null ? _433_47_.onDrag : undefined : undefined : undefined)))
+                else if (_k_.isFunc(((_431_32_=this.downHit) != null ? (_431_38_=_431_32_.mesh) != null ? (_431_47_=_431_38_.handler) != null ? _431_47_.onDrag : undefined : undefined : undefined)))
                 {
                     this.downHit.mesh.handler.onDrag(hit,this.downHit,this.lastHit)
                 }
@@ -491,11 +489,11 @@ class RTS
             post.emit('mouseMove',hit,this.downHit,this.lastHit)
             if ((this.lastHit != null ? this.lastHit.mesh : undefined) !== hit.mesh)
             {
-                if (_k_.isFunc(((_439_27_=this.lastHit) != null ? (_439_33_=_439_27_.mesh) != null ? _439_33_.onLeave : undefined : undefined)))
+                if (_k_.isFunc(((_437_27_=this.lastHit) != null ? (_437_33_=_437_27_.mesh) != null ? _437_33_.onLeave : undefined : undefined)))
                 {
                     this.lastHit.mesh.onLeave(this.lastHit,hit,event)
                 }
-                else if (_k_.isFunc(((_441_32_=this.lastHit) != null ? (_441_38_=_441_32_.mesh) != null ? (_441_47_=_441_38_.handler) != null ? _441_47_.onLeave : undefined : undefined : undefined)))
+                else if (_k_.isFunc(((_439_32_=this.lastHit) != null ? (_439_38_=_439_32_.mesh) != null ? (_439_47_=_439_38_.handler) != null ? _439_47_.onLeave : undefined : undefined : undefined)))
                 {
                     this.lastHit.mesh.handler.onLeave(this.lastHit,hit,event)
                 }
@@ -503,7 +501,7 @@ class RTS
                 {
                     hit.mesh.onEnter(hit,this.lastHit,event)
                 }
-                else if (_k_.isFunc(((_445_32_=hit.mesh) != null ? (_445_41_=_445_32_.handler) != null ? _445_41_.onEnter : undefined : undefined)))
+                else if (_k_.isFunc(((_443_32_=hit.mesh) != null ? (_443_41_=_443_32_.handler) != null ? _443_41_.onEnter : undefined : undefined)))
                 {
                     hit.mesh.handler.onEnter(hit,this.lastHit,event)
                 }
@@ -514,7 +512,7 @@ class RTS
 
     onClick (event)
     {
-        var hit, _453_23_, _456_28_, _456_37_
+        var hit, _451_23_, _454_28_, _454_37_
 
         if (hit = this.castRay())
         {
@@ -525,7 +523,7 @@ class RTS
                     return hit.mesh.onClick(hit,event)
                 }
             }
-            else if (_k_.isFunc(((_456_28_=hit.mesh) != null ? (_456_37_=_456_28_.handler) != null ? _456_37_.onClick : undefined : undefined)))
+            else if (_k_.isFunc(((_454_28_=hit.mesh) != null ? (_454_37_=_454_28_.handler) != null ? _454_37_.onClick : undefined : undefined)))
             {
                 if (this.downHit.mesh === hit.mesh)
                 {
@@ -537,7 +535,7 @@ class RTS
 
     onDblClick (event)
     {
-        var hit, _464_23_, _466_28_, _466_37_
+        var hit, _462_23_, _464_28_, _464_37_
 
         if (hit = this.castRay())
         {
@@ -545,7 +543,7 @@ class RTS
             {
                 return hit.mesh.onDoubleClick(hit)
             }
-            else if (_k_.isFunc(((_466_28_=hit.mesh) != null ? (_466_37_=_466_28_.handler) != null ? _466_37_.onDoubleClick : undefined : undefined)))
+            else if (_k_.isFunc(((_464_28_=hit.mesh) != null ? (_464_37_=_464_28_.handler) != null ? _464_37_.onDoubleClick : undefined : undefined)))
             {
                 return hit.mesh.handler.onDoubleClick(hit)
             }
@@ -564,7 +562,7 @@ class RTS
 
     focusOnHit ()
     {
-        var hit, _479_31_
+        var hit, _477_31_
 
         if (hit = this.castRay())
         {
@@ -601,7 +599,7 @@ class RTS
 
     render ()
     {
-        var info, _550_18_, _552_21_
+        var info, _548_18_, _550_21_
 
         this.lightPlayer.position.copy(this.camera.position)
         this.renderer.render(world.scene,this.camera)
@@ -611,7 +609,7 @@ class RTS
         this.fps.draw()
         if (prefs.get('info'))
         {
-            this.info = ((_550_18_=this.info) != null ? _550_18_ : new Info)
+            this.info = ((_548_18_=this.info) != null ? _548_18_ : new Info)
             return this.info.draw(info)
         }
         else if ((this.info != null))

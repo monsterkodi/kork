@@ -85,8 +85,6 @@ World        = require './world/world'
 Map          = require './world/map'
 Camera       = require './lib/camera'
 PlayerCamera = require './player/camera'
-Node         = require './track/node'
-CurveCtrl    = require './track/curvectrl'
 PointerLock  = require './lib/three/PointerLock'
 
 tmpMatrix = new THREE.Matrix3
