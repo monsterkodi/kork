@@ -1,0 +1,66 @@
+###
+000000000  000  000      00000000  
+   000     000  000      000       
+   000     000  000      0000000   
+   000     000  000      000       
+   000     000  0000000  00000000  
+###
+
+function Tile
+
+    @: (@x, @y, @size, @type) ->
+        
+        switch @type
+            1,2 ➜ @hill()
+                ➜ @flat()
+              
+        @geom.translate @x, @y, 0
+        
+    contains: (x, y) ->
+        
+        sh = @size/2
+        (@x-sh) < x < (@x+sh) and (@y-sh) < y < (@y+sh)
+        
+    heightAt: (x, y) -> 
+
+        px = x-@x
+        py = y-@y
+        
+        vr = Math.sqrt px*px+py*py
+        mr = min vr, @size*0.5
+        
+        cos = Math.cos 2*Math.PI*mr/@size
+        switch @type
+            1 ➜ -@size/8*(1+cos)
+            2 ➜  @size/8*(1+cos)
+              ➜ 0
+        
+    normalAt: (x, y) ->
+        
+        d  = 0.1
+        h0 = @heightAt x, y
+        v0 = vec x, y, h0
+        xp = @heightAt x+d, y
+        xn = @heightAt x-d, y
+        yp = @heightAt x, y+d
+        yn = @heightAt x, y-d
+        vx = vec(x+d, y, xp).sub v0
+        vy = vec(x,y+d, yp).sub v0
+        
+        vx.cross(vy).normalize()
+              
+    flat: -> 
+    
+        @geom = new PlaneGeometry @size, @size, 1 1
+                
+    hill: -> 
+        
+        @geom = new PlaneGeometry @size, @size, 30 30
+        
+        vertices = @geom.attributes.position
+        for vertex in 0...vertices.count
+            px = vertices.array[vertex*3+0]
+            py = vertices.array[vertex*3+1]
+            vertices.array[vertex*3+2] = @heightAt @x+px, @y+py
+            
+module.exports = Tile

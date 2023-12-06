@@ -1,12 +1,10 @@
 // monsterkodi/kode 0.243.0
 
-var _k_ = {clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
+var _k_ = {clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, max: function () { m = -Infinity; for (a of arguments) { if (Array.isArray(a)) {m = _k_.max.apply(_k_.max,[m].concat(a))} else {n = parseFloat(a); if(!isNaN(n)){m = n > m ? n : m}}}; return m }, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
 
-var PerspectiveCamera, post, prefs, Quaternion, reduce, THREE
+var PerspectiveCamera, Quaternion, reduce, THREE
 
 clamp = require('kxk').clamp
-post = require('kxk').post
-prefs = require('kxk').prefs
 reduce = require('kxk').reduce
 
 THREE = require('three')
@@ -16,7 +14,7 @@ class PlayerCamera extends PerspectiveCamera
 {
     constructor (opt)
     {
-        super(70,width / height,1,10000)
+        super(70,width / height,1,1000)
     
         var height, width
 
@@ -30,11 +28,11 @@ class PlayerCamera extends PerspectiveCamera
         this.fov = 70
         this.size = vec(width,height)
         this.elem = opt.view
-        this.dist = 30
+        this.dist = 40
         this.maxDist = this.far / 2
         this.minDist = this.near * 2
         this.center = vec()
-        this.degree = -10
+        this.degree = -30
         this.rotate = 0
         this.wheelInert = 0
         this.pivotX = 0
@@ -43,6 +41,7 @@ class PlayerCamera extends PerspectiveCamera
         this.downPos = vec()
         this.centerTarget = vec()
         this.quat = quat()
+        this.vecs = {playerForward:vec(),cameraForward:vec(),smoothForward:vec(),smoothRight:vec(),targetPos:vec()}
         this.elem.addEventListener('mousewheel',this.onMouseWheel)
     }
 
@@ -226,27 +225,29 @@ class PlayerCamera extends PerspectiveCamera
         return this.fov = _k_.clamp(2.0,175.0,fov)
     }
 
-    storePrefs ()
-    {
-        return prefs.set('playerCamera',{degree:this.degree,rotate:this.rotate,dist:this.dist,center:{x:this.centerTarget.x,y:this.centerTarget.y,z:this.centerTarget.z}})
-    }
-
     update (delta)
     {
-        var cameraForward, playerForward, rotquat, smoothForward, smoothRight, _203_18_, _220_27_
+        var height, rotquat, _193_18_, _220_27_
 
-        this.degree = _k_.clamp(-25,-70,this.degree)
+        this.degree = _k_.clamp(0,-70,this.degree)
         if ((this.player != null ? this.player.mesh.position : undefined))
         {
-            playerForward = this.player.getForward().projectOnPlane(Vector.unitZ)
-            cameraForward = this.getDir().projectOnPlane(Vector.unitZ)
-            smoothForward = cameraForward.lerp(playerForward,delta * 1.2)
-            smoothRight = smoothForward.crossed(Vector.unitZ)
-            rotquat = Quaternion.axisAngle(smoothRight,this.degree)
-            Vector.tmp.copy(smoothForward.negate().scale(this.dist))
-            Vector.tmp.applyQuaternion(rotquat)
-            Vector.tmp.add(this.player.mesh.position)
-            this.position.lerp(Vector.tmp,1)
+            this.vecs.playerForward.copy(this.player.vecs.forward)
+            this.vecs.playerForward.projectOnPlane(Vector.unitZ)
+            this.vecs.cameraForward.copy(Vector.minusZ)
+            this.vecs.cameraForward.applyQuaternion(this.quaternion)
+            this.vecs.cameraForward.projectOnPlane(Vector.unitZ)
+            this.vecs.smoothForward.copy(this.vecs.cameraForward)
+            this.vecs.smoothForward.lerp(this.vecs.playerForward,delta * 10)
+            this.vecs.smoothRight.copy(this.vecs.smoothForward)
+            this.vecs.smoothRight.cross(Vector.unitZ)
+            rotquat = Quaternion.axisAngle(this.vecs.smoothRight,this.degree)
+            this.vecs.targetPos.copy(this.vecs.smoothForward).negate().scale(this.dist)
+            this.vecs.targetPos.applyQuaternion(rotquat)
+            this.vecs.targetPos.add(this.player.mesh.position)
+            this.position.lerp(this.vecs.targetPos,delta * 5)
+            height = world.landscapeHeight(this.position)
+            this.position.z = _k_.max(this.position.z,height + 4)
             this.up.set(0,0,1)
             return this.lookAt((this.player != null ? this.player.mesh.position : undefined))
         }

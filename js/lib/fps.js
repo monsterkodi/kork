@@ -32,27 +32,25 @@ class FPS
         $("#main").appendChild(this.canvas)
     }
 
-    draw ()
+    draw (delta)
     {
-        var ctx, h, i, ms, time
+        var ctx, h, i, ms
 
-        time = window.performance.now()
         this.index += 1
         if (this.index > 2 * this.width)
         {
             this.index = 0
         }
-        this.history[this.index] = time - this.last
+        this.history[this.index] = delta * 1000
         this.canvas.height = this.canvas.height
         ctx = this.canvas.getContext('2d')
-        for (var _55_18_ = i = 0, _55_22_ = this.history.length; (_55_18_ <= _55_22_ ? i < this.history.length : i > this.history.length); (_55_18_ <= _55_22_ ? ++i : --i))
+        for (var _56_18_ = i = 0, _56_22_ = this.history.length; (_56_18_ <= _56_22_ ? i < this.history.length : i > this.history.length); (_56_18_ <= _56_22_ ? ++i : --i))
         {
-            ms = Math.max(0,this.history[i] - 17)
+            ms = Math.max(0,this.history[i])
             ctx.fillStyle = this.colors[_k_.clamp(0,32,parseInt(ms))]
             h = Math.min(ms,60)
             ctx.fillRect((2 * this.width - this.index + i) % (2 * this.width),0,2,h)
         }
-        return this.last = time
     }
 }
 

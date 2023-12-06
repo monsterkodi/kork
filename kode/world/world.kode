@@ -6,12 +6,12 @@
 00     00   0000000   000   000  0000000  0000000  
 ###
 
-Construct      = require './construct'
+Landscape      = require './landscape'
 Physics        = require './physics'
 Player         = require '../player/player'
 Save           = require './save'
 
-function World extends Construct
+function World extends Landscape
     
     @: (@scene) ->
         
@@ -31,15 +31,15 @@ function World extends Construct
         
         # @addFloor()
         
-        @setLabels prefs.get 'labels' false
+        # @setLabels prefs.get 'labels' false
         @setSpeed  Param.get 'speed'
         
-        @addLabel text:"Hello" size:10 mono:true
-        # @setLabels true
+        @addLabel text:"Hello" size:100 mono:true position:[0 0 5]
+        @setLabels true
         
         @addObject @player.mesh
         
-        @addMesh @meshes.landscape
+        @addMesh @landscape
         
         rts.playerCamera.setPlayer @player
         
@@ -84,7 +84,7 @@ function World extends Construct
             
     animate: (delta) ->
 
-        ▴ delta > 0
+        return if not delta #▴ delta > 0
         scaledDelta = delta * @speed
         @timeSum += scaledDelta
         
@@ -175,8 +175,8 @@ function World extends Construct
         
     roundPos: (v) -> 
         Vector.tmp.copy v
-        Vector.tmp.rounded()
-        
+        Vector.tmp.rounded()        
+                
     # 00000000   000   0000000  000   000   0000000   0000000    000      00000000   0000000  
     # 000   000  000  000       000  000   000   000  000   000  000      000       000       
     # 00000000   000  000       0000000    000000000  0000000    000      0000000   0000000   

@@ -6,7 +6,7 @@
 000        0000000  000   000     000     00000000  000   000         0000000  000   000  000   000  00000000  000   000  000   000
 ###
 
-{ clamp, post, prefs, reduce } = require 'kxk'
+{ clamp, reduce } = require 'kxk'
 
 THREE = require 'three'
 Quaternion = require '../lib/quaternion'
@@ -19,16 +19,16 @@ class PlayerCamera extends PerspectiveCamera
         width  = opt.view.clientWidth 
         height = opt.view.clientHeight
         
-        super 70, width/height, 1, 10000 # fov, aspect, near, far
+        super 70, width/height, 1, 1000 # fov, aspect, near, far
         
         @fov     = 70
         @size    = vec width, height 
         @elem    = opt.view
-        @dist    = 30
+        @dist    = 40
         @maxDist = @far/2
         @minDist = @near*2
         @center  = vec()
-        @degree  = -10
+        @degree  = -30
         @rotate  = 0
         @wheelInert = 0
         @pivotX  = 0
@@ -37,7 +37,14 @@ class PlayerCamera extends PerspectiveCamera
         @downPos = vec()
         @centerTarget = vec()
         @quat         = quat()
-
+        
+        @vecs = 
+            playerForward: vec()
+            cameraForward: vec()
+            smoothForward: vec()
+            smoothRight:   vec()
+            targetPos:     vec()
+            
         @elem.addEventListener 'mousewheel' @onMouseWheel
         
     setPlayer: (@player) -> @update 1
@@ -173,23 +180,6 @@ class PlayerCamera extends PerspectiveCamera
         
     setFov: (fov) -> @fov = clamp 2.0 175.0 fov
     
-    # 00000000   00000000   00000000  00000000   0000000  
-    # 000   000  000   000  000       000       000       
-    # 00000000   0000000    0000000   000000    0000000   
-    # 000        000   000  000       000            000  
-    # 000        000   000  00000000  000       0000000   
-    
-    storePrefs: ->
-        
-        prefs.set 'playerCamera', 
-            degree: @degree 
-            rotate: @rotate 
-            dist:   @dist 
-            center:
-                x: @centerTarget.x
-                y: @centerTarget.y
-                z: @centerTarget.z
-    
     # 000   000  00000000   0000000     0000000   000000000  00000000  
     # 000   000  000   000  000   000  000   000     000     000       
     # 000   000  00000000   000   000  000000000     000     0000000   
@@ -198,23 +188,33 @@ class PlayerCamera extends PerspectiveCamera
     
     update: (delta) -> 
         
-        @degree = clamp -25 -70 @degree
+        @degree = clamp 0 -70 @degree
 
         if @player?.mesh.position
             
-            playerForward = @player.getForward().projectOnPlane Vector.unitZ
-            cameraForward = @getDir().projectOnPlane Vector.unitZ
+            @vecs.playerForward.copy @player.vecs.forward
+            @vecs.playerForward.projectOnPlane Vector.unitZ
             
-            smoothForward = cameraForward.lerp playerForward, delta*1.2
-            smoothRight   = smoothForward.crossed Vector.unitZ
-            rotquat       = Quaternion.axisAngle smoothRight, @degree
+            @vecs.cameraForward.copy Vector.minusZ
+            @vecs.cameraForward.applyQuaternion @quaternion
+            @vecs.cameraForward.projectOnPlane Vector.unitZ
             
-            Vector.tmp.copy smoothForward.negate().scale(@dist)
-            Vector.tmp.applyQuaternion rotquat
+            @vecs.smoothForward.copy @vecs.cameraForward
+            @vecs.smoothForward.lerp @vecs.playerForward, delta*10
             
-            Vector.tmp.add @player.mesh.position
+            @vecs.smoothRight.copy @vecs.smoothForward
+            @vecs.smoothRight.cross Vector.unitZ
             
-            @position.lerp Vector.tmp, 1 #delta*4
+            rotquat       = Quaternion.axisAngle @vecs.smoothRight, @degree
+            
+            @vecs.targetPos.copy(@vecs.smoothForward).negate().scale(@dist)
+            @vecs.targetPos.applyQuaternion rotquat
+            @vecs.targetPos.add @player.mesh.position
+            
+            @position.lerp @vecs.targetPos, delta*5
+            
+            height = world.landscapeHeight @position
+            @position.z = max @position.z, height+4
             
             @up.set 0 0 1
             @lookAt @player?.mesh.position

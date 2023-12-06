@@ -10,11 +10,17 @@ color = (v) -> new THREE.Color v
 
 Colors =
     
-    clear:      color  0x020202
-    fog:        color  0x080808
+    clear:      color  0x000000
+    fog:        color  0x000000
     black:      color  0x000000
     white:      color  0xffffff
            
+    mining:
+        water: color 0x2222ff
+        blood: color 0x4444ff
+        stuff: color 0x6666ff
+        chalk: color 0x8888ff
+    
     menu:
         background:      color 0x181818
         backgroundHover: color 0x202020

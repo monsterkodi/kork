@@ -24,10 +24,10 @@ Materials =
         flat:           material 0xffffff, metalness: 0.5 roughness: 0.7 flatShading:true, dithering:true
         toon:           material 0xffffff, typ:'toon'
     shinyblack:         material 0x000000, metalness: 0.6 roughness: 0.1 flatShading:true
-    player:             material 0x8888ff, metalness: 0.0 roughness: 0.1 dithering:true #emissive:0x222288
+    landscape:          material 0x555555, metalness: 1.0 roughness: 1.0 dithering:true
+    player:             material 0x8888ff, metalness: 0.0 roughness: 0.15 dithering:true #emissive:0x222288
     wireframe:          material 0x888888, typ:'basic' wireframe: true
     floor:              material 0x020202, metalness: 0.2, roughness: 0.8 dithering:true
-    landscape:          material 0x444444, metalness: 0.2, roughness: 0.8 dithering:true
     shadow:             material 0x000000, typ:'shadow' opacity:0.2 depthWrite:false
     station:
         side:           material 0x000000, metalness: 0.5 roughness: 0.2, dithering:true, side:THREE.DoubleSide
@@ -36,6 +36,11 @@ Materials =
         inactive:       material Colors.menu.inactive,     metalness: 0.9, roughness: 0.75
         activeHigh:     material Colors.menu.activeHigh,   metalness: 0.9, roughness: 0.75
         inactiveHigh:   material Colors.menu.inactiveHigh, metalness: 0.9, roughness: 0.75
+    mining:
+        water:          material Colors.mining.water, metalness: 0.6 roughness: 0.01, emissive:Colors.mining.water #, dithering:true
+        blood:          material Colors.mining.blood, metalness: 0.6 roughness: 0.01, emissive:Colors.mining.blood #, dithering:true
+        stuff:          material Colors.mining.stuff, metalness: 0.6 roughness: 0.01, emissive:Colors.mining.stuff #, dithering:true
+        chalk:          material Colors.mining.chalk, metalness: 0.6 roughness: 0.01, emissive:Colors.mining.chalk #, dithering:true
 
     setWire: (wire) ->
         

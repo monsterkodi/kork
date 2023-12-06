@@ -43,21 +43,22 @@ class FPS
     # 000   000  000   000  000   000  000   000
     # 0000000    000   000  000   000  00     00
                 
-    draw: =>
+    draw: (delta) =>
         
-        time = window.performance.now()
+        # time = window.performance.now()
         @index += 1
         if @index > 2*@width
             @index = 0
-        @history[@index] = time-@last
+        # @history[@index] = time-@last
+        @history[@index] = delta*1000
         @canvas.height = @canvas.height
         ctx = @canvas.getContext '2d'        
         for i in [0...@history.length]  
-            ms = Math.max 0, @history[i]-17
-            ctx.fillStyle = @colors[clamp 0, 32, parseInt ms]
+            ms = Math.max 0 @history[i]#-17
+            ctx.fillStyle = @colors[clamp 0 32 parseInt ms]
             h = Math.min ms, 60
             ctx.fillRect (2*@width-@index+i)%(2*@width), 0, 2, h
-        @last = time
+        # @last = time
 
 module.exports = FPS
 

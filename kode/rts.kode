@@ -93,13 +93,14 @@ class RTS
 
     @: (@view) ->
         
-        new Param "speed"   6   max:12  step:1    fixed:0 change: (value) => world.setSpeed value
-        new Param "bloom"   0.5 max:1.0 step:0.05 fixed:2 change: (value) => @bloomPass.strength     = value
-        new Param "thresh"  0.1 max:1.0 step:0.05 fixed:2 change: (value) => @bloomPass.threshold    = value
-        new Param "ambient" 0.2 max:1.0 step:0.05 fixed:2 change: (value) => @lightAmbient.intensity = value
-        new Param "point"   20  max:30  step:1    fixed:0 change: (value) => @lightPlayer.intensity  = value
-        new Param "decay"   1   max:2   step:0.1  fixed:1 change: (value) => @lightPlayer.decay      = value
-        new Param "sun"     2   max:10  step:1    fixed:0 change: (value) => @lightShadow.intensity  = value
+        new Param "speed"   6    max:12  step:1    fixed:0 change: (value) => world.setSpeed value
+        new Param "bloom"   1    max:1.0 step:0.01 fixed:2 change: (value) => @bloomPass.strength     = value
+        new Param "thresh"  0.2  max:1.0 step:0.01 fixed:2 change: (value) => @bloomPass.threshold    = value
+        new Param "ambient" 0.02 max:1.0 step:0.02 fixed:2 change: (value) => @lightAmbient.intensity = value
+        new Param "point"   6    max:30  step:0.1  fixed:1 change: (value) => @lightPlayer.intensity  = value
+        new Param "decay"   1    max:2   step:0.1  fixed:1 change: (value) => @lightPlayer.decay      = value
+        new Param "sun"     3    max:10  step:0.1  fixed:1 change: (value) => @lightShadow.intensity  = value
+        new Param "far"     3000 min:500 max:5000  step:1  fixed:0 change: (value) => @playerCamera.far = value; @scene.fog?.far = value; @playerCamera.updateProjectionMatrix()
         
         new Toggle 'wire'   change: (value) -> Materials.setWire value
         new Toggle 'axes'   change: (value) -> rts.axesHelper.visible = value
@@ -108,6 +109,8 @@ class RTS
         new Toggle 'light'  change: (value) -> rts.lightShadowHelper.visible = value
         new Toggle 'grid'   change: (value) -> rts.gridHelper.visible = value
         new Toggle 'label'  change: (value) -> world.setLabels value
+        new Toggle 'glow'   default: true change: (value) -> rts.setBloom value
+        new Toggle 'fog'    default: true change: (value) -> rts.setFog value
         
         window.rts = @
         window.config = Config.default
@@ -156,14 +159,12 @@ class RTS
         @lightShadow.shadow.mapSize.width  = 2*2048
         @lightShadow.shadow.mapSize.height = 2*2048
         @lightShadow.shadow.camera.near    = 0.5
-        @lightShadow.shadow.camera.far     = 5000
+        @lightShadow.shadow.camera.far     = 1000
         @lightShadow.shadow.camera.left    = -50
         @lightShadow.shadow.camera.right   =  50
         @lightShadow.shadow.camera.top     =  50
         @lightShadow.shadow.camera.bottom  = -50
         @scene.add @lightShadow
-        
-        @scene.fog = new THREE.Fog Colors.fog, 100, 4000
         
         @initHelpers()
         
@@ -200,9 +201,19 @@ class RTS
         @paused = prefs.get 'paused' false
         
         @debug = new Debug @view
-                        
+        
+        # @setFog   Toggle.get 'fog'
+        # @setBloom Toggle.get 'bloom'
+        
         Toggle.applyAll()
         Param.applyAll()
+                
+    setFog: (fog) =>
+        
+        if fog
+            @scene.fog = new THREE.Fog Colors.fog, 100 1000
+        else
+            delete @scene.fog
             
     # 000   000  00000000  000      00000000   00000000  00000000    0000000  
     # 000   000  000       000      000   000  000       000   000  000       
@@ -277,21 +288,26 @@ class RTS
         size = @renderer.getDrawingBufferSize new THREE.Vector2()
         renderTarget = new THREE.WebGLRenderTarget size.width, size.height, samples:1
             
-        vw = @view.clientWidth 
+        vw = @view.clientWidth
         vh = @view.clientHeight
         
         @composer = new EffectComposer @renderer, renderTarget
-        @composer.setPixelRatio window.devicePixelRatio
+        @composer.setPixelRatio window.devicePixelRatio#*0.5
         @composer.setSize vw, vh
         @composer.addPass new RenderPass @scene, @camera
         
-        resolution = new THREE.Vector2 vw, vh
+        resolution = new THREE.Vector2 vw*0.125, vh*0.125
         strength   = Param.get 'bloom'
         threshold  = Param.get 'thresh'
-        radius     = 0
+        radius     = 0.1
 
-        @bloomPass = new UnrealBloomPass resolution, strength, radius, threshold
-        @composer.addPass @bloomPass
+        @bloomPass = new UnrealBloomPass resolution, strength, radius, threshold, 5
+        
+    setBloom: (bloom) ->
+        
+        @composer.removePass @bloomPass
+        if bloom
+            @composer.addPass @bloomPass
                                 
     toggleDebug: -> @debug.toggle()
 
@@ -327,8 +343,9 @@ class RTS
         delta = (timeStamp-@lastTimeStamp) * 0.001
 
         # log delta, timeStamp, @lastTimeStamp
+        window.requestAnimationFrame @animationStep
+        
         if not timeStamp
-            window.requestAnimationFrame @animationStep
             return
         
         @lastAnimationTime = now
@@ -362,9 +379,9 @@ class RTS
                 
             @camera.update delta
 
-        @render()
+        @render delta
 
-        window.requestAnimationFrame @animationStep
+        # window.requestAnimationFrame @animationStep
             
     # 00     00   0000000   000   000   0000000  00000000  
     # 000   000  000   000  000   000  000       000       
@@ -522,7 +539,7 @@ class RTS
     # 000   000  000       000  0000  000   000  000       000   000  
     # 000   000  00000000  000   000  0000000    00000000  000   000  
     
-    render: ->
+    render: (delta) ->
         
         @lightPlayer.position.copy @camera.position
         @renderer.render world.scene, @camera
@@ -542,7 +559,8 @@ class RTS
         @composer.render()
         @renderer.info.reset()
         
-        @fps.draw()
+        # log parseInt delta*1000
+        @fps.draw delta
         
         if prefs.get 'info'
             @info ?= new Info

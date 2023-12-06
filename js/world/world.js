@@ -1,17 +1,17 @@
 // monsterkodi/kode 0.243.0
 
-var _k_ = {extend: function (c,p) {for (var k in p) { if (Object.hasOwn(p, k)) c[k] = p[k] } function ctor() { this.constructor = c; } ctor.prototype = p.prototype; c.prototype = new ctor(); c.__super__ = p.prototype; return c;}, list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}, assert: function (f,l,c,m,t) { if (!t) {console.log(f + ':' + l + ':' + c + ' ▴ ' + m)}}, clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, in: function (a,l) {return (typeof l === 'string' && typeof a === 'string' && a.length ? '' : []).indexOf.call(l,a) >= 0}, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
+var _k_ = {extend: function (c,p) {for (var k in p) { if (Object.hasOwn(p, k)) c[k] = p[k] } function ctor() { this.constructor = c; } ctor.prototype = p.prototype; c.prototype = new ctor(); c.__super__ = p.prototype; return c;}, list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}, clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, in: function (a,l) {return (typeof l === 'string' && typeof a === 'string' && a.length ? '' : []).indexOf.call(l,a) >= 0}, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
 
-var Construct, Physics, Player, Save, World
+var Landscape, Physics, Player, Save, World
 
-Construct = require('./construct')
+Landscape = require('./landscape')
 Physics = require('./physics')
 Player = require('../player/player')
 Save = require('./save')
 
 World = (function ()
 {
-    _k_.extend(World, Construct)
+    _k_.extend(World, Landscape)
     function World (scene)
     {
         this.scene = scene
@@ -30,11 +30,11 @@ World = (function ()
         this.save = new Save
         this.physics = new Physics
         this.player = new Player
-        this.setLabels(prefs.get('labels',false))
         this.setSpeed(Param.get('speed'))
-        this.addLabel({text:"Hello",size:10,mono:true})
+        this.addLabel({text:"Hello",size:100,mono:true,position:[0,0,5]})
+        this.setLabels(true)
         this.addObject(this.player.mesh)
-        this.addMesh(this.meshes.landscape)
+        this.addMesh(this.landscape)
         rts.playerCamera.setPlayer(this.player)
     }
 
@@ -100,7 +100,10 @@ World = (function ()
     {
         var animation, oldAnimations, scaledDelta
 
-        _k_.assert(".", 87, 8, "assert failed!" + " delta > 0", delta > 0)
+        if (!delta)
+        {
+            return
+        }
         scaledDelta = delta * this.speed
         this.timeSum += scaledDelta
         oldAnimations = this.animations.clone()

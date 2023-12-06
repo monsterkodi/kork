@@ -2,21 +2,33 @@
 
 var _k_ = {clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
 
-var Player
+var ColorGrid, Player
 
+ColorGrid = require('../lib/ColorGrid')
 
 Player = (function ()
 {
     function Player (opt)
     {
-        var _13_26_
+        var geom, _15_26_
 
-        this.mesh = ((_13_26_=(opt != null ? opt.mesh : undefined)) != null ? _13_26_ : new Mesh(Geom.roundedBox({size:[6,6,6],pos:[0,0,3],radius:1}),Materials.player))
+        this.mesh = ((_15_26_=(opt != null ? opt.mesh : undefined)) != null ? _15_26_ : new Mesh(Geom.roundedBox({size:[6,6,6],pos:[0,0,3],radius:1}),Materials.player))
         this.mesh.setShadow()
+        this.grid = new ColorGrid({size:3.5,gridSize:8})
+        this.grid.quads.rotateX(deg2rad(90))
+        this.grid.quads.position.set(0,-2.1,3)
+        this.columns = [[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0],[0,0,0,0,0,0,0,0]]
+        this.mesh.add(this.grid.quads)
+        geom = Geom.box({size:4})
+        geom.translate(0,0,3)
+        this.box = new Mesh(geom,Materials.shinyblack)
+        this.box.setShadow(true)
+        this.mesh.add(this.box)
         this.left = 0
         this.right = 0
         this.forward = 0
         this.backward = 0
+        this.vecs = {up:vec(0,0,1),right:vec(1,0,0),forward:vec(0,1,0)}
     }
 
     Player.prototype["onPointerLock"] = function (x, y, event)
@@ -72,59 +84,29 @@ Player = (function ()
 
     Player.prototype["getForward"] = function ()
     {
-        return Vector.unitY.clone().applyQuaternion(this.mesh.quaternion)
-    }
-
-    Player.prototype["getLandscapeIntersection"] = function ()
-    {
-        var direction, info, intersect, intersects, origin
-
-        origin = this.mesh.position.clone()
-        origin.z += 1000
-        direction = vec(0,0,-1)
-        rts.raycaster.set(origin,direction)
-        intersects = rts.raycaster.intersectObjects(world.pickables,true)
-        intersects = intersects.filter(function (i)
-        {
-            return i.object.noHitTest !== true
-        })
-        intersect = intersects[0]
-        if (!intersect)
-        {
-            direction.negate()
-            rts.raycaster.set(origin,direction)
-            intersects = rts.raycaster.intersectObjects(world.pickables,true)
-            intersects = intersects.filter(function (i)
-            {
-                return i.object.noHitTest !== true
-            })
-            intersect = intersects[0]
-        }
-        if (!intersect)
-        {
-            return {name:'none',point:origin,norm:direction.negated(),dist:0}
-        }
-        info = {name:intersect.object.name,point:vec(intersect.point),norm:vec(intersect.normal),dist:intersect.distance}
-        return info
+        return vec(this.vecs.forward)
     }
 
     Player.prototype["animate"] = function (scaledDelta, delta)
     {
-        var forward, forwardNorm, info, m, right, rightNorm, up
+        var forwardNorm, m, norm, rightNorm
 
         this.mesh.translateY(2 * (this.forward - this.backward) * scaledDelta)
-        info = this.getLandscapeIntersection()
-        this.mesh.position.copy(info.point)
+        this.mesh.position.z = world.landscapeHeight(this.mesh.position)
+        this.columns[randInt(8)][randInt(8)] = randInt(5)
+        this.grid.setColumns(this.columns)
         this.mesh.rotateZ(deg2rad(50 * (this.left - this.right) * delta))
-        up = Vector.unitZ.clone().applyQuaternion(this.mesh.quaternion)
-        right = Vector.unitX.clone().applyQuaternion(this.mesh.quaternion)
-        forward = Vector.unitY.clone().applyQuaternion(this.mesh.quaternion)
-        forwardNorm = forward.projectOnPlane(info.norm)
+        this.vecs.right.copy(Vector.unitX)
+        this.vecs.right.applyQuaternion(this.mesh.quaternion)
+        this.vecs.forward.copy(Vector.unitY)
+        this.vecs.forward.applyQuaternion(this.mesh.quaternion)
+        norm = world.landscapeNormal(this.mesh.position)
+        forwardNorm = this.vecs.forward.projectOnPlane(norm)
         forwardNorm.normalize()
-        rightNorm = right.projectOnPlane(info.norm)
+        rightNorm = this.vecs.right.projectOnPlane(norm)
         rightNorm.normalize()
         m = new THREE.Matrix4
-        m.makeBasis(rightNorm,forwardNorm,info.norm)
+        m.makeBasis(rightNorm,forwardNorm,norm)
         return this.mesh.setRotationFromMatrix(m)
     }
 

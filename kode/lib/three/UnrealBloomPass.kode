@@ -53,7 +53,6 @@ class UnrealBloomPass extends Pass
             @renderTargetsVertical.push renderTargetVertical
 
             resx = Math.round resx / 2 
-
             resy = Math.round resy / 2
 
         # luminosity high pass material

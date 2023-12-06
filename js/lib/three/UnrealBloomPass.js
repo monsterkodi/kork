@@ -62,7 +62,7 @@ class UnrealBloomPass extends Pass
         kernelSizeArray = [3,5,7,9,11]
         resx = Math.round(this.resolution.x / 2)
         resy = Math.round(this.resolution.y / 2)
-        for (var _79_17_ = i = 0, _79_21_ = this.nMips; (_79_17_ <= _79_21_ ? i < this.nMips : i > this.nMips); (_79_17_ <= _79_21_ ? ++i : --i))
+        for (var _78_17_ = i = 0, _78_21_ = this.nMips; (_78_17_ <= _78_21_ ? i < this.nMips : i > this.nMips); (_78_17_ <= _78_21_ ? ++i : --i))
         {
             this.separableBlurMaterials.push(this.getSeperableBlurMaterial(kernelSizeArray[i]))
             this.separableBlurMaterials[i].uniforms['invSize'].value = new Vector2(1 / resx,1 / resy)
@@ -96,16 +96,16 @@ class UnrealBloomPass extends Pass
     {
         var i
 
-        for (var _131_17_ = i = 0, _131_21_ = this.renderTargetsHorizontal.length; (_131_17_ <= _131_21_ ? i < this.renderTargetsHorizontal.length : i > this.renderTargetsHorizontal.length); (_131_17_ <= _131_21_ ? ++i : --i))
+        for (var _130_17_ = i = 0, _130_21_ = this.renderTargetsHorizontal.length; (_130_17_ <= _130_21_ ? i < this.renderTargetsHorizontal.length : i > this.renderTargetsHorizontal.length); (_130_17_ <= _130_21_ ? ++i : --i))
         {
             this.renderTargetsHorizontal[i].dispose()
         }
-        for (var _135_17_ = i = 0, _135_21_ = this.renderTargetsVertical.length; (_135_17_ <= _135_21_ ? i < this.renderTargetsVertical.length : i > this.renderTargetsVertical.length); (_135_17_ <= _135_21_ ? ++i : --i))
+        for (var _134_17_ = i = 0, _134_21_ = this.renderTargetsVertical.length; (_134_17_ <= _134_21_ ? i < this.renderTargetsVertical.length : i > this.renderTargetsVertical.length); (_134_17_ <= _134_21_ ? ++i : --i))
         {
             this.renderTargetsVertical[i].dispose()
         }
         this.renderTargetBright.dispose()
-        for (var _141_17_ = i = 0, _141_21_ = this.separableBlurMaterials.length; (_141_17_ <= _141_21_ ? i < this.separableBlurMaterials.length : i > this.separableBlurMaterials.length); (_141_17_ <= _141_21_ ? ++i : --i))
+        for (var _140_17_ = i = 0, _140_21_ = this.separableBlurMaterials.length; (_140_17_ <= _140_21_ ? i < this.separableBlurMaterials.length : i > this.separableBlurMaterials.length); (_140_17_ <= _140_21_ ? ++i : --i))
         {
             this.separableBlurMaterials[i].dispose()
         }
@@ -122,7 +122,7 @@ class UnrealBloomPass extends Pass
         resx = Math.round(width / 2)
         resy = Math.round(height / 2)
         this.renderTargetBright.setSize(resx,resy)
-        for (var _157_17_ = i = 0, _157_21_ = this.nMips; (_157_17_ <= _157_21_ ? i < this.nMips : i > this.nMips); (_157_17_ <= _157_21_ ? ++i : --i))
+        for (var _156_17_ = i = 0, _156_21_ = this.nMips; (_156_17_ <= _156_21_ ? i < this.nMips : i > this.nMips); (_156_17_ <= _156_21_ ? ++i : --i))
         {
             this.renderTargetsHorizontal[i].setSize(resx,resy)
             this.renderTargetsVertical[i].setSize(resx,resy)
@@ -160,7 +160,7 @@ class UnrealBloomPass extends Pass
         renderer.clear()
         this.fsQuad.render(renderer)
         inputRenderTarget = this.renderTargetBright
-        for (var _204_17_ = i = 0, _204_21_ = this.nMips; (_204_17_ <= _204_21_ ? i < this.nMips : i > this.nMips); (_204_17_ <= _204_21_ ? ++i : --i))
+        for (var _203_17_ = i = 0, _203_21_ = this.nMips; (_203_17_ <= _203_21_ ? i < this.nMips : i > this.nMips); (_203_17_ <= _203_21_ ? ++i : --i))
         {
             this.fsQuad.setMaterial(this.separableBlurMaterials[i])
             this.separableBlurMaterials[i].uniforms['colorTexture'].value = inputRenderTarget.texture
@@ -207,7 +207,7 @@ class UnrealBloomPass extends Pass
         var coefficients, i
 
         coefficients = []
-        for (var _260_17_ = i = 0, _260_21_ = kernelRadius; (_260_17_ <= _260_21_ ? i < kernelRadius : i > kernelRadius); (_260_17_ <= _260_21_ ? ++i : --i))
+        for (var _259_17_ = i = 0, _259_21_ = kernelRadius; (_259_17_ <= _259_21_ ? i < kernelRadius : i > kernelRadius); (_259_17_ <= _259_21_ ? ++i : --i))
         {
             coefficients.push(0.39894 * Math.exp(-0.5 * i * i / (kernelRadius * kernelRadius)) / kernelRadius)
         }

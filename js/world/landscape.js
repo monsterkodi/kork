@@ -2,8 +2,9 @@
 
 var _k_ = {list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}}
 
-var Landscape
+var Landscape, Tile
 
+Tile = require('./tile')
 
 Landscape = (function ()
 {
@@ -17,17 +18,38 @@ Landscape = (function ()
         return this.heightAt(pos.x,pos.y)
     }
 
+    Landscape.prototype["landscapeNormal"] = function (pos)
+    {
+        return this.normalAt(pos.x,pos.y)
+    }
+
     Landscape.prototype["heightAt"] = function (x, y)
     {
-        return 0
+        return this.tileAt(x,y).heightAt(x,y)
+    }
+
+    Landscape.prototype["normalAt"] = function (x, y)
+    {
+        return this.tileAt(x,y).normalAt(x,y)
+    }
+
+    Landscape.prototype["tileAt"] = function (x, y)
+    {
+        var tile
+
+        var list = _k_.list(this.tiles)
+        for (var _23_17_ = 0; _23_17_ < list.length; _23_17_++)
+        {
+            tile = list[_23_17_]
+            if (tile.contains(x,y))
+            {
+                return tile
+            }
+        }
+        return this.tiles[0]
     }
 
     Landscape.prototype["init"] = function ()
-    {
-        return this.initLandscape()
-    }
-
-    Landscape.prototype["initLandscape"] = function ()
     {
         var geom, geoms, size, so, tile, x, xo, y, yo
 
@@ -38,10 +60,10 @@ Landscape = (function ()
             {
                 if ((x === y && y === 0))
                 {
-                    tiles.push(new Tile(0,0,size,0))
+                    this.tiles.push(new Tile(0,0,size,0))
                     continue
                 }
-                tiles.push(x * size,y * size,size,randInt(3))
+                this.tiles.push(new Tile(x * size,y * size,size,randInt(3)))
             }
         }
         size = 150
@@ -58,7 +80,7 @@ Landscape = (function ()
                 {
                     for (y = 0; y <= 1; y++)
                     {
-                        tiles.push((x - 0.5) * size + xo * so,(y - 0.5) * size + yo * so,size,randInt(3))
+                        this.tiles.push(new Tile((x - 0.5) * size + xo * so,(y - 0.5) * size + yo * so,size,randInt(3)))
                     }
                 }
             }
@@ -72,7 +94,7 @@ Landscape = (function ()
                 {
                     continue
                 }
-                tiles.push(x * size,y * size,size,randInt(3))
+                this.tiles.push(new Tile(x * size,y * size,size,randInt(3)))
             }
         }
         size = 750
@@ -89,16 +111,16 @@ Landscape = (function ()
                 {
                     for (y = 0; y <= 1; y++)
                     {
-                        tiles.push((x - 0.5) * size + xo * so,(y - 0.5) * size + yo * so,size,randInt(3))
+                        this.tiles.push(new Tile((x - 0.5) * size + xo * so,(y - 0.5) * size + yo * so,size,randInt(3)))
                     }
                 }
             }
         }
         geoms = []
         var list = _k_.list(this.tiles)
-        for (var _77_17_ = 0; _77_17_ < list.length; _77_17_++)
+        for (var _80_17_ = 0; _80_17_ < list.length; _80_17_++)
         {
-            tile = list[_77_17_]
+            tile = list[_80_17_]
             geoms.push(tile.geom)
         }
         geom = Geom.merge(geoms)

@@ -1,0 +1,93 @@
+###
+000       0000000   000   000  0000000     0000000   0000000   0000000   00000000   00000000  
+000      000   000  0000  000  000   000  000       000       000   000  000   000  000       
+000      000000000  000 0 000  000   000  0000000   000       000000000  00000000   0000000   
+000      000   000  000  0000  000   000       000  000       000   000  000        000       
+0000000  000   000  000   000  0000000    0000000    0000000  000   000  000        00000000  
+###
+
+Tile = require './tile'
+
+function Landscape
+
+    @: ->
+        
+        @tiles = []
+        
+    landscapeHeight: (pos) -> @heightAt pos.x, pos.y
+    landscapeNormal: (pos) -> @normalAt pos.x, pos.y
+    heightAt: (x, y) -> @tileAt(x, y).heightAt x, y
+    normalAt: (x, y) -> @tileAt(x, y).normalAt x, y
+    tileAt: (x, y) -> 
+    
+        for tile in @tiles
+            if tile.contains x, y
+                return tile
+            
+        @tiles[0]
+        
+    # 000  000   000  000  000000000  
+    # 000  0000  000  000     000     
+    # 000  000 0 000  000     000     
+    # 000  000  0000  000     000     
+    # 000  000   000  000     000     
+    
+    init: -> 
+        
+        size = 100
+
+        for x in -1..1
+            for y in -1..1
+                if x == y == 0
+                    @tiles.push new Tile 0 0 size, 0
+                    continue
+                @tiles.push new Tile x*size, y*size, size, randInt 3
+                    
+        size = 150
+        so   = 300
+        for xo in -1..1
+            for yo in -1..1
+                continue if xo == yo == 0
+                for x in 0..1
+                    for y in 0..1
+                        @tiles.push new Tile (x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, randInt 3
+
+        size = 300
+        for x in -2..2
+            for y in -2..2
+                continue if abs(y)<2 and abs(x)<2
+                @tiles.push new Tile x*size, y*size, size, randInt 3
+                
+        size = 750
+        so   = 1500
+        for xo in -1..1
+            for yo in -1..1
+                continue if xo == yo == 0
+                for x in 0..1
+                    for y in 0..1
+                        @tiles.push new Tile (x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, randInt 3
+
+        # size = 2250
+        # so   = 4500
+        # for xo in -1..1
+            # for yo in -1..1
+                # continue if xo == yo == 0
+                # for x in 0..1
+                    # for y in 0..1
+                        # @tiles.push new Tile (x-0.5)*size+xo*so, (y-0.5)*size+yo*so, size, randInt 3
+
+        geoms = []
+        for tile in @tiles
+            geoms.push tile.geom
+
+        geom = Geom.merge geoms
+        
+        geom.computeVertexNormals()
+        geom.computeBoundingSphere()
+        
+        @landscape = new Mesh geom, Materials.landscape
+        @landscape.setShadow()
+        @landscape.name = 'landscape'
+        
+module.exports = Landscape
+

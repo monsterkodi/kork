@@ -6,6 +6,8 @@
 000        0000000  000   000     000     00000000  000   000  
 ###
 
+ColorGrid = require '../lib/ColorGrid'
+
 function Player
     
     @: (opt) ->
@@ -13,10 +15,27 @@ function Player
         @mesh = opt?.mesh ? new Mesh Geom.roundedBox({ size:[6 6 6], pos:[0 0 3], radius:1}), Materials.player
         @mesh.setShadow()
         
+        @grid = new ColorGrid size:3.5 gridSize:8
+        @grid.quads.rotateX deg2rad 90
+        @grid.quads.position.set 0 -2.1 3
+        @columns = [[0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0] [0 0 0 0 0 0 0 0]]        
+        @mesh.add @grid.quads
+        
+        geom = Geom.box size:4
+        geom.translate 0 0 3
+        @box = new Mesh geom, Materials.shinyblack
+        @box.setShadow true
+        @mesh.add @box
+        
         @left = 0
         @right = 0
         @forward = 0
         @backward = 0
+        
+        @vecs = 
+            up: vec 0 0 1
+            right: vec 1 0 0
+            forward: vec 0 1 0
                 
     onPointerLock: (x, y, event) ->
         
@@ -44,44 +63,8 @@ function Player
         
         0
         
-    getForward: -> Vector.unitY.clone().applyQuaternion @mesh.quaternion
-        
-    getLandscapeIntersection: ->
-        
-        origin = @mesh.position.clone()
-        origin.z += 1000
-        direction = vec 0 0 -1
-        
-        rts.raycaster.set origin, direction
-        intersects = rts.raycaster.intersectObjects world.pickables, true
-
-        intersects = intersects.filter (i) -> i.object.noHitTest != true
-        intersect = intersects[0]
-        
-        if not intersect
-        
-            direction.negate()
-            rts.raycaster.set origin, direction
-            intersects = rts.raycaster.intersectObjects world.pickables, true
-    
-            intersects = intersects.filter (i) -> i.object.noHitTest != true
-            intersect = intersects[0]
-            
-        if not intersect
-
-            return
-                name:   'none'
-                point:  origin
-                norm:   direction.negated()
-                dist:   0
-        
-        info = 
-            name:   intersect.object.name
-            point:  vec intersect.point
-            norm:   vec intersect.normal
-            dist:   intersect.distance
-
-        info
+    # getForward: -> Vector.unitY.clone().applyQuaternion @mesh.quaternion
+    getForward: -> vec @vecs.forward
         
     #  0000000   000   000  000  00     00   0000000   000000000  00000000  
     # 000   000  0000  000  000  000   000  000   000     000     000       
@@ -93,24 +76,27 @@ function Player
         
         @mesh.translateY 2*(@forward - @backward)*scaledDelta
         
-        info = @getLandscapeIntersection()
-
-        @mesh.position.copy info.point
+        @mesh.position.z = world.landscapeHeight @mesh.position
+        
+        @columns[randInt(8)][randInt(8)] = randInt(5)
+        @grid.setColumns @columns
                     
         @mesh.rotateZ deg2rad 50*(@left - @right)*delta
                         
-        up = Vector.unitZ.clone().applyQuaternion @mesh.quaternion
-        right = Vector.unitX.clone().applyQuaternion @mesh.quaternion
-        forward = Vector.unitY.clone().applyQuaternion @mesh.quaternion
+        # @vecs.up.copy Vector.unitZ; @vecs.up.applyQuaternion @mesh.quaternion
+        @vecs.right.copy Vector.unitX; @vecs.right.applyQuaternion @mesh.quaternion
+        @vecs.forward.copy Vector.unitY; @vecs.forward.applyQuaternion @mesh.quaternion
 
-        forwardNorm = forward.projectOnPlane info.norm
+        norm = world.landscapeNormal @mesh.position
+        
+        forwardNorm = @vecs.forward.projectOnPlane norm
         forwardNorm.normalize()
-        rightNorm = right.projectOnPlane info.norm
+        rightNorm = @vecs.right.projectOnPlane norm
         rightNorm.normalize()
         
         m = new THREE.Matrix4
-        m.makeBasis rightNorm, forwardNorm, info.norm
-        
+        m.makeBasis rightNorm, forwardNorm, norm
+         
         @mesh.setRotationFromMatrix m
         
     moveForward:  (by=1) -> @forward  = by
