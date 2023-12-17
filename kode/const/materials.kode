@@ -23,9 +23,10 @@ Materials =
         transparent:    material 0x888888, typ:'lambert' depthWrite:false, transparent:true, opacity:0.1
         flat:           material 0xffffff, metalness: 0.5 roughness: 0.7 flatShading:true, dithering:true
         toon:           material 0xffffff, typ:'toon'
-    shinyblack:         material 0x000000, metalness: 0.6 roughness: 0.1 flatShading:true
-    landscape:          material 0x555555, metalness: 1.0 roughness: 1.0 dithering:true
+    shinyblack:         material 0x000000, metalness: 0.6 roughness: 0.1  flatShading:true
+    landscape:          material 0x555555, metalness: 0.2 roughness: 1.0  dithering:true
     player:             material 0x8888ff, metalness: 0.0 roughness: 0.15 dithering:true #emissive:0x222288
+    enemy:              material 0xff0000, metalness: 0.0 roughness: 0.5  dithering:true #emissive:0x222288
     wireframe:          material 0x888888, typ:'basic' wireframe: true
     floor:              material 0x020202, metalness: 0.2, roughness: 0.8 dithering:true
     shadow:             material 0x000000, typ:'shadow' opacity:0.2 depthWrite:false

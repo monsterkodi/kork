@@ -1,16 +1,15 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, max: function () { m = -Infinity; for (a of arguments) { if (Array.isArray(a)) {m = _k_.max.apply(_k_.max,[m].concat(a))} else {n = parseFloat(a); if(!isNaN(n)){m = n > m ? n : m}}}; return m }, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
 
-var PerspectiveCamera, Quaternion, reduce, THREE
+var Quaternion, reduce, THREE
 
 clamp = require('kxk').clamp
 reduce = require('kxk').reduce
 
 THREE = require('three')
 Quaternion = require('../lib/quaternion')
-PerspectiveCamera = THREE.PerspectiveCamera
-class PlayerCamera extends PerspectiveCamera
+class PlayerCamera extends THREE.PerspectiveCamera
 {
     constructor (opt)
     {
@@ -227,7 +226,7 @@ class PlayerCamera extends PerspectiveCamera
 
     update (delta)
     {
-        var height, rotquat, _193_18_, _220_27_
+        var height, rotquat, _192_18_, _219_27_
 
         this.degree = _k_.clamp(0,-70,this.degree)
         if ((this.player != null ? this.player.mesh.position : undefined))

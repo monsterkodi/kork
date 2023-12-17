@@ -7,10 +7,15 @@
 ###
 
 World = require './world'
+Enemy = require '../enemy/enemy'
 
 class Map extends World
         
     create: ->
+        
+        for n in 0...world.enemies.maxCount
+            enemy = new Enemy @
+            enemy.setPosition randInt(2000)-1000, randInt(2000)-1000
     
         # @addObject new Mesh Geom.roundedFrame({ size:[6 6 6]}), Materials.ctrl.start
         # @addObject new Mesh Geom.roundedFrame({}), Materials.wireframe

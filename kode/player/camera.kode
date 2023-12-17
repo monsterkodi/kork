@@ -10,9 +10,8 @@
 
 THREE = require 'three'
 Quaternion = require '../lib/quaternion'
-PerspectiveCamera = THREE.PerspectiveCamera
 
-class PlayerCamera extends PerspectiveCamera
+class PlayerCamera extends THREE.PerspectiveCamera
 
     @: (opt) ->
         

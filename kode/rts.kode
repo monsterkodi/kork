@@ -48,6 +48,7 @@ expose = """
     CubicBezierCurve3
     BufferGeometry
     BufferAttribute
+    InstancedMesh
     """
     
 for e in expose.split '\n'
@@ -160,10 +161,10 @@ class RTS
         @lightShadow.shadow.mapSize.height = 2*2048
         @lightShadow.shadow.camera.near    = 0.5
         @lightShadow.shadow.camera.far     = 1000
-        @lightShadow.shadow.camera.left    = -50
-        @lightShadow.shadow.camera.right   =  50
-        @lightShadow.shadow.camera.top     =  50
-        @lightShadow.shadow.camera.bottom  = -50
+        @lightShadow.shadow.camera.left    = -200
+        @lightShadow.shadow.camera.right   =  200
+        @lightShadow.shadow.camera.top     =  200
+        @lightShadow.shadow.camera.bottom  = -200
         @scene.add @lightShadow
         
         @initHelpers()

@@ -1,0 +1,42 @@
+###
+00000000  000   000  00000000  00     00  000  00000000   0000000  
+000       0000  000  000       000   000  000  000       000       
+0000000   000 0 000  0000000   000000000  000  0000000   0000000   
+000       000  0000  000       000 0 000  000  000            000  
+00000000  000   000  00000000  000   000  000  00000000  0000000   
+###
+
+function Enemies
+
+    @: (@world) ->
+        
+        @matrix = new Matrix4
+        @scaleVec = vec()
+        @maxCount = 1000
+        
+        @mesh = new InstancedMesh Geom.sphere(radius:1), Materials.enemy, @maxCount
+        @mesh.count = 0
+        @mesh.setShadow()
+ 
+    num: -> @mesh.count
+        
+    add: (enemy) ->
+        
+        if @mesh.count < @maxCount
+            enemy.index = @num()
+            @mesh.count++
+            
+            @mesh.getMatrixAt enemy.index, @matrix
+            @scaleVec.set enemy.scale, enemy.scale, enemy.scale
+            @matrix.scale @scaleVec
+            @mesh.setMatrixAt enemy.index, @matrix
+            @mesh.instanceMatrix.needsUpdate = true
+        
+    setPosition: (index, x, y, z) ->
+
+        @mesh.getMatrixAt index, @matrix
+        @matrix.setPosition x, y, z
+        @mesh.setMatrixAt index, @matrix
+        @mesh.instanceMatrix.needsUpdate = true
+
+module.exports = Enemies

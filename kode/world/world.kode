@@ -8,6 +8,7 @@
 
 Landscape      = require './landscape'
 Physics        = require './physics'
+Enemies        = require '../enemy/enemies'
 Player         = require '../player/player'
 Save           = require './save'
 
@@ -28,6 +29,7 @@ function World extends Landscape
         @save       = new Save
         @physics    = new Physics
         @player     = new Player
+        @enemies    = new Enemies
         
         # @addFloor()
         
@@ -38,6 +40,8 @@ function World extends Landscape
         @setLabels true
         
         @addObject @player.mesh
+        
+        @scene.add @enemies.mesh
         
         @addMesh @landscape
         
@@ -210,7 +214,7 @@ function World extends Landscape
         
         @removeObject mesh
         @removePickable mesh
-        
+                
     addBody: (body) -> @physics.addBody body
         
     removeBody: (body) -> if body ➜ @physics.removeBody body
