@@ -99,7 +99,9 @@ function World extends Landscape
         
         @physics.simulate scaledDelta, @timeSum
         
-        @player.animate scaledDelta, delta
+        @player.animate scaledDelta, delta, @timeSum
+        
+        @enemies.animate scaledDelta, delta, @timeSum
                 
     create: ->
         

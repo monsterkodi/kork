@@ -12,9 +12,13 @@ Colors =
     
     clear:      color  0x000000
     fog:        color  0x000000
+    
+    landscape:  color  0x555555
+    enemy:      color  0xff0000
+           
     black:      color  0x000000
     white:      color  0xffffff
-           
+
     mining:
         water: color 0x2222ff
         blood: color 0x4444ff

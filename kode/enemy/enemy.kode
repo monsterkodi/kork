@@ -10,13 +10,45 @@ function Enemy
 
     @: (@world) ->
         
-        @scale = randRange 1 3
+        @scale = randRange 1 4
+        @position = vec()
         @world.enemies.add @
+        @playerDist = 0
+        @wobbleAccum = 0
+        @color = new Color 1 0 0
         
     setPosition: (x, y) ->
         
         z = @world.heightAt x, y
         
         @world.enemies.setPosition @index, x, y, z+@scale
+        
+    calcPosition: -> 
+    
+        @world.enemies.clonePosition @index, @position
+        @position
+        
+    animate: (scaledDelta) ->
+        
+        @calcPosition()
+                
+        @playerDist = @world.player.getPosition().distanceTo @position
+        l1 = clamp 0 1 @playerDist/400
+        l2 = clamp 0 1 @playerDist/150
+        @color.copy Colors.enemy
+        @color.lerp Colors.landscape, l2
+        @world.enemies.setColor @index, @color
+        
+        @position.lerp @world.player.getPosition(), 0.01 * (1-l2)
+        
+        z = @world.heightAt @position.x, @position.y
+        z -= @scale
+        o = (3*@scale) * (1-l1)
+        o = clamp 0 2*@scale, o
+        
+        @wobbleAccum += (1-l2)*scaledDelta
+        upDownWobble = 0.4 * @scale * abs sin 1*@wobbleAccum
+        
+        @world.enemies.setPosition @index, @position.x, @position.y, z+o+upDownWobble
     
 module.exports = Enemy

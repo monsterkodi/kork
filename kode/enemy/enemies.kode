@@ -10,9 +10,10 @@ function Enemies
 
     @: (@world) ->
         
+        @enemies = []
         @matrix = new Matrix4
         @scaleVec = vec()
-        @maxCount = 1000
+        @maxCount = 1500
         
         @mesh = new InstancedMesh Geom.sphere(radius:1), Materials.enemy, @maxCount
         @mesh.count = 0
@@ -23,6 +24,9 @@ function Enemies
     add: (enemy) ->
         
         if @mesh.count < @maxCount
+            
+            @enemies.push enemy
+            
             enemy.index = @num()
             @mesh.count++
             
@@ -38,5 +42,20 @@ function Enemies
         @matrix.setPosition x, y, z
         @mesh.setMatrixAt index, @matrix
         @mesh.instanceMatrix.needsUpdate = true
+        
+    setColor: (index, color) ->
+        
+        @mesh.setColorAt index, color
+        @mesh.instanceColor.needsUpdate = true
+        
+    clonePosition: (index, position) ->
+        
+        @mesh.getMatrixAt index, @matrix
+        position.setFromMatrixPosition @matrix
+        
+    animate: (scaledDelta, delta) ->
+        
+        for enemy in @enemies
+            enemy.animate scaledDelta, delta
 
 module.exports = Enemies

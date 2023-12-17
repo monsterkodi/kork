@@ -27,6 +27,8 @@ function Player
         @box.setShadow true
         @mesh.add @box
         
+        @speedAccum = 0
+        @speed = 0
         @left = 0
         @right = 0
         @forward = 0
@@ -36,6 +38,9 @@ function Player
             up: vec 0 0 1
             right: vec 1 0 0
             forward: vec 0 1 0
+            position: vec 0 0 2
+            
+    getPosition: -> @mesh.position
                 
     onPointerLock: (x, y, event) ->
         
@@ -72,16 +77,25 @@ function Player
     # 000   000  000  0000  000  000 0 000  000   000     000     000       
     # 000   000  000   000  000  000   000  000   000     000     00000000  
     
-    animate: (scaledDelta, delta) ->
+    animate: (scaledDelta, delta, timeSum) ->
+ 
+        @speed = fade @speed, 2*(@forward - @backward), 0.02
         
-        @mesh.translateY 2*(@forward - @backward)*scaledDelta
+        @mesh.translateY @speed*scaledDelta
         
-        @mesh.position.z = world.landscapeHeight @mesh.position
+        @speedAccum += (1+6*abs(@speed))*scaledDelta
+        upDownWobble = fade(0.5 0.05 abs(@speed)*0.5) * sin 0.1*@speedAccum
+        @floorDist = 2 
+        
+        @vecs.position.copy @mesh.position
+        @vecs.position.z = @floorDist + world.landscapeHeight @mesh.position
+        @mesh.position.copy @vecs.position
+        @mesh.position.z += upDownWobble
         
         @columns[randInt(8)][randInt(8)] = randInt(5)
         @grid.setColumns @columns
                     
-        @mesh.rotateZ deg2rad 50*(@left - @right)*delta
+        @mesh.rotateZ deg2rad (@left - @right)*40*delta*(1+abs(@speed))
                         
         # @vecs.up.copy Vector.unitZ; @vecs.up.applyQuaternion @mesh.quaternion
         @vecs.right.copy Vector.unitX; @vecs.right.applyQuaternion @mesh.quaternion

@@ -10,12 +10,13 @@ class Map extends World
 {
     create ()
     {
-        var enemy, n
+        var enemy, enemyRadius, n
 
-        for (var _16_17_ = n = 0, _16_21_ = world.enemies.maxCount; (_16_17_ <= _16_21_ ? n < world.enemies.maxCount : n > world.enemies.maxCount); (_16_17_ <= _16_21_ ? ++n : --n))
+        enemyRadius = 500
+        for (var _17_17_ = n = 0, _17_21_ = world.enemies.maxCount; (_17_17_ <= _17_21_ ? n < world.enemies.maxCount : n > world.enemies.maxCount); (_17_17_ <= _17_21_ ? ++n : --n))
         {
             enemy = new Enemy(this)
-            enemy.setPosition(randInt(2000) - 1000,randInt(2000) - 1000)
+            enemy.setPosition(randInt(enemyRadius * 2) - enemyRadius,randInt(enemyRadius * 2) - enemyRadius)
         }
     }
 }

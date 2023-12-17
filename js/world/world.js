@@ -118,7 +118,8 @@ World = (function ()
             animation(scaledDelta,this.timeSum)
         }
         this.physics.simulate(scaledDelta,this.timeSum)
-        return this.player.animate(scaledDelta,delta)
+        this.player.animate(scaledDelta,delta,this.timeSum)
+        return this.enemies.animate(scaledDelta,delta,this.timeSum)
     }
 
     World.prototype["create"] = function ()

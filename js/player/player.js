@@ -1,4 +1,4 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {clamp: function (l,h,v) { var ll = Math.min(l,h), hh = Math.max(l,h); if (!_k_.isNum(v)) { v = ll }; if (v < ll) { v = ll }; if (v > hh) { v = hh }; if (!_k_.isNum(v)) { v = ll }; return v }, isNum: function (o) {return !isNaN(o) && !isNaN(parseFloat(o)) && (isFinite(o) || o === Infinity || o === -Infinity)}}
 
@@ -24,11 +24,18 @@ Player = (function ()
         this.box = new Mesh(geom,Materials.shinyblack)
         this.box.setShadow(true)
         this.mesh.add(this.box)
+        this.speedAccum = 0
+        this.speed = 0
         this.left = 0
         this.right = 0
         this.forward = 0
         this.backward = 0
-        this.vecs = {up:vec(0,0,1),right:vec(1,0,0),forward:vec(0,1,0)}
+        this.vecs = {up:vec(0,0,1),right:vec(1,0,0),forward:vec(0,1,0),position:vec(0,0,2)}
+    }
+
+    Player.prototype["getPosition"] = function ()
+    {
+        return this.mesh.position
     }
 
     Player.prototype["onPointerLock"] = function (x, y, event)
@@ -87,15 +94,22 @@ Player = (function ()
         return vec(this.vecs.forward)
     }
 
-    Player.prototype["animate"] = function (scaledDelta, delta)
+    Player.prototype["animate"] = function (scaledDelta, delta, timeSum)
     {
-        var forwardNorm, m, norm, rightNorm
+        var forwardNorm, m, norm, rightNorm, upDownWobble
 
-        this.mesh.translateY(2 * (this.forward - this.backward) * scaledDelta)
-        this.mesh.position.z = world.landscapeHeight(this.mesh.position)
+        this.speed = fade(this.speed,2 * (this.forward - this.backward),0.02)
+        this.mesh.translateY(this.speed * scaledDelta)
+        this.speedAccum += (1 + 6 * abs(this.speed)) * scaledDelta
+        upDownWobble = fade(0.5,0.05,abs(this.speed) * 0.5) * sin(0.1 * this.speedAccum)
+        this.floorDist = 2
+        this.vecs.position.copy(this.mesh.position)
+        this.vecs.position.z = this.floorDist + world.landscapeHeight(this.mesh.position)
+        this.mesh.position.copy(this.vecs.position)
+        this.mesh.position.z += upDownWobble
         this.columns[randInt(8)][randInt(8)] = randInt(5)
         this.grid.setColumns(this.columns)
-        this.mesh.rotateZ(deg2rad(50 * (this.left - this.right) * delta))
+        this.mesh.rotateZ(deg2rad((this.left - this.right) * 40 * delta * (1 + abs(this.speed))))
         this.vecs.right.copy(Vector.unitX)
         this.vecs.right.applyQuaternion(this.mesh.quaternion)
         this.vecs.forward.copy(Vector.unitY)

@@ -39,6 +39,7 @@ class PlayerCamera extends THREE.PerspectiveCamera
         this.mouse = vec()
         this.downPos = vec()
         this.centerTarget = vec()
+        this.lookAtTarget = vec()
         this.quat = quat()
         this.vecs = {playerForward:vec(),cameraForward:vec(),smoothForward:vec(),smoothRight:vec(),targetPos:vec()}
         this.elem.addEventListener('mousewheel',this.onMouseWheel)
@@ -226,7 +227,7 @@ class PlayerCamera extends THREE.PerspectiveCamera
 
     update (delta)
     {
-        var height, rotquat, _192_18_, _219_27_
+        var height, rotquat, _193_18_
 
         this.degree = _k_.clamp(0,-70,this.degree)
         if ((this.player != null ? this.player.mesh.position : undefined))
@@ -248,7 +249,8 @@ class PlayerCamera extends THREE.PerspectiveCamera
             height = world.landscapeHeight(this.position)
             this.position.z = _k_.max(this.position.z,height + 4)
             this.up.set(0,0,1)
-            return this.lookAt((this.player != null ? this.player.mesh.position : undefined))
+            this.lookAtTarget.lerp(this.player.mesh.position,0.1)
+            return this.lookAt(this.lookAtTarget)
         }
     }
 }
