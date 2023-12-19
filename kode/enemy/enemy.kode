@@ -20,8 +20,9 @@ function Enemy
     setPosition: (x, y) ->
         
         z = @world.heightAt x, y
+        @position.set @index, x, y, z+@scale
         
-        @world.enemies.setPosition @index, x, y, z+@scale
+        @world.enemies.setPosition @position.x, @position.y, @position.z
         
     calcPosition: ->
     

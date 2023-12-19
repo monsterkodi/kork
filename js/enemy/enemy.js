@@ -24,7 +24,8 @@ Enemy = (function ()
         var z
 
         z = this.world.heightAt(x,y)
-        return this.world.enemies.setPosition(this.index,x,y,z + this.scale)
+        this.position.set(this.index,x,y,z + this.scale)
+        return this.world.enemies.setPosition(this.position.x,this.position.y,this.position.z)
     }
 
     Enemy.prototype["calcPosition"] = function ()
