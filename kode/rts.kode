@@ -27,6 +27,9 @@ window.fade         = fade
 window.abs          = Math.abs
 window.sin          = Math.sin
 window.cos          = Math.cos
+window.round        = Math.round
+window.floor        = Math.floor
+window.ceil         = Math.ceil
 
 window.THREE        = require 'three'
 

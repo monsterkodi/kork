@@ -23,30 +23,40 @@ function Enemy
         
         @world.enemies.setPosition @index, x, y, z+@scale
         
-    calcPosition: -> 
+    calcPosition: ->
     
         @world.enemies.clonePosition @index, @position
+        @playerDist = @world.player.getPosition().distanceTo @position
+        @l1 = clamp 0 1 @playerDist/400
+        @l2 = clamp 0 1 @playerDist/150
         @position
+        
+    calcPlayerAttraction: (scaledDelta) ->
+        
+        @wobbleAccum += (1-@l2)*scaledDelta
+        @position.lerp @world.player.getPosition(), 0.01 * (1-@l2)
+        
+    calcRepulsion: ->
+        
+        return if @l2 > 0.99
+        
+        if closest = @world.enemies.getClosestEnemy @
+            dist = @world.enemies.distanceBetween @, closest
+            if dist < 1.0 * (@scale + closest.scale)
+                @position.add @world.enemies.repulsionVector @, closest
         
     animate: (scaledDelta) ->
         
-        @calcPosition()
-                
-        @playerDist = @world.player.getPosition().distanceTo @position
-        l1 = clamp 0 1 @playerDist/400
-        l2 = clamp 0 1 @playerDist/150
+        
         @color.copy Colors.enemy
-        @color.lerp Colors.landscape, l2
+        @color.lerp Colors.landscape, @l2
         @world.enemies.setColor @index, @color
-        
-        @position.lerp @world.player.getPosition(), 0.01 * (1-l2)
-        
+                        
         z = @world.heightAt @position.x, @position.y
         z -= @scale
-        o = (3*@scale) * (1-l1)
+        o = (3*@scale) * (1-@l1)
         o = clamp 0 2*@scale, o
         
-        @wobbleAccum += (1-l2)*scaledDelta
         upDownWobble = 0.4 * @scale * abs sin 1*@wobbleAccum
         
         @world.enemies.setPosition @index, @position.x, @position.y, z+o+upDownWobble

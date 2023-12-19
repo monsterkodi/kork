@@ -13,6 +13,7 @@ function Enemies
         @enemies = []
         @matrix = new Matrix4
         @scaleVec = vec()
+        @repulsionVec = vec()
         @maxCount = 1500
         
         @mesh = new InstancedMesh Geom.sphere(radius:1), Materials.enemy, @maxCount
@@ -53,8 +54,79 @@ function Enemies
         @mesh.getMatrixAt index, @matrix
         position.setFromMatrixPosition @matrix
         
+    # 00000000    0000000    0000000  000000000  00000000  00000000   000  0000000  00000000  
+    # 000   000  000   000  000          000     000       000   000  000     000   000       
+    # 0000000    000000000  0000000      000     0000000   0000000    000    000    0000000   
+    # 000   000  000   000       000     000     000       000   000  000   000     000       
+    # 000   000  000   000  0000000      000     00000000  000   000  000  0000000  00000000  
+    
+    rasterize: (raster=10) ->
+        
+        @rasterized = {}
+        for enemy in @enemies
+            key = @rasterKeyForEnemy(enemy, raster)
+            @rasterized[key] ?= []
+            @rasterized[key].push enemy.index
+            
+        for key,enemies of @rasterized
+            if enemies.length > 100
+                log key, enemies.length #, enemies
+                
+    rasterKeyForEnemy: (enemy, raster=10) ->
+        
+        "#{floor enemy.position.x/raster} #{floor enemy.position.y/raster}"
+                
+    #  0000000  000       0000000    0000000  00000000   0000000  000000000  
+    # 000       000      000   000  000       000       000          000     
+    # 000       000      000   000  0000000   0000000   0000000      000     
+    # 000       000      000   000       000  000            000     000     
+    #  0000000  0000000   0000000   0000000   00000000  0000000      000     
+    
+    
+    distanceBetween: (enemyA, enemyB) ->
+        
+        enemyA.position.distanceTo enemyB.position
+        
+    repulsionVector: (enemyA, enemyB) ->
+        
+        @repulsionVec.copy enemyA.position
+        @repulsionVec.sub enemyB.position
+        @repulsionVec.normalize()
+        @repulsionVec.scale 0.1 * (enemyA.scale + enemyB.scale)
+        @repulsionVec
+        
+    getClosestEnemy: (enemy) ->
+        
+        minDist = Infinity
+        key = @rasterKeyForEnemy enemy
+        for otherIndex in @rasterized[key]
+            continue if otherIndex == enemy.index
+            other = @enemies[otherIndex]
+            dist = @distanceBetween enemy, other
+            if dist < minDist
+                minDist = dist
+                closest = other
+        closest
+                
+    #  0000000   000   000  000  00     00   0000000   000000000  00000000  
+    # 000   000  0000  000  000  000   000  000   000     000     000       
+    # 000000000  000 0 000  000  000000000  000000000     000     0000000   
+    # 000   000  000  0000  000  000 0 000  000   000     000     000       
+    # 000   000  000   000  000  000   000  000   000     000     00000000  
+    
     animate: (scaledDelta, delta) ->
         
+        @rasterize()
+
+        for enemy in @enemies
+            enemy.calcPosition()
+            
+        for enemy in @enemies
+            enemy.calcPlayerAttraction scaledDelta
+
+        for enemy in @enemies
+            enemy.calcRepulsion()
+            
         for enemy in @enemies
             enemy.animate scaledDelta, delta
 

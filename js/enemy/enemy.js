@@ -30,26 +30,47 @@ Enemy = (function ()
     Enemy.prototype["calcPosition"] = function ()
     {
         this.world.enemies.clonePosition(this.index,this.position)
+        this.playerDist = this.world.player.getPosition().distanceTo(this.position)
+        this.l1 = _k_.clamp(0,1,this.playerDist / 400)
+        this.l2 = _k_.clamp(0,1,this.playerDist / 150)
         return this.position
+    }
+
+    Enemy.prototype["calcPlayerAttraction"] = function (scaledDelta)
+    {
+        this.wobbleAccum += (1 - this.l2) * scaledDelta
+        return this.position.lerp(this.world.player.getPosition(),0.01 * (1 - this.l2))
+    }
+
+    Enemy.prototype["calcRepulsion"] = function ()
+    {
+        var closest, dist
+
+        if (this.l2 > 0.99)
+        {
+            return
+        }
+        if (closest = this.world.enemies.getClosestEnemy(this))
+        {
+            dist = this.world.enemies.distanceBetween(this,closest)
+            if (dist < 1.0 * (this.scale + closest.scale))
+            {
+                return this.position.add(this.world.enemies.repulsionVector(this,closest))
+            }
+        }
     }
 
     Enemy.prototype["animate"] = function (scaledDelta)
     {
-        var l1, l2, o, upDownWobble, z
+        var o, upDownWobble, z
 
-        this.calcPosition()
-        this.playerDist = this.world.player.getPosition().distanceTo(this.position)
-        l1 = _k_.clamp(0,1,this.playerDist / 400)
-        l2 = _k_.clamp(0,1,this.playerDist / 150)
         this.color.copy(Colors.enemy)
-        this.color.lerp(Colors.landscape,l2)
+        this.color.lerp(Colors.landscape,this.l2)
         this.world.enemies.setColor(this.index,this.color)
-        this.position.lerp(this.world.player.getPosition(),0.01 * (1 - l2))
         z = this.world.heightAt(this.position.x,this.position.y)
         z -= this.scale
-        o = (3 * this.scale) * (1 - l1)
+        o = (3 * this.scale) * (1 - this.l1)
         o = _k_.clamp(0,2 * this.scale,o)
-        this.wobbleAccum += (1 - l2) * scaledDelta
         upDownWobble = 0.4 * this.scale * abs(sin(1 * this.wobbleAccum))
         return this.world.enemies.setPosition(this.index,this.position.x,this.position.y,z + o + upDownWobble)
     }
