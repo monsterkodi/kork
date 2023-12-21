@@ -36,14 +36,14 @@ class Quaternion extends ThreeQuaternion
     @axisAngle: (axis, angle) -> 
         
         Quaternion.tmp.setFromAxisAngle axis, deg2rad angle
-        Quaternion.tmp.clone()
+        # Quaternion.tmp.clone()
             
     rotateAxisAngle: (axis, angle) ->
         
         @multiply Quaternion.axisAngle axis, angle
         @
             
-    clone: -> new Quaternion @
+    # clone: -> new Quaternion @
     copy: (q) ->
         @x = q.x
         @y = q.y
@@ -113,7 +113,7 @@ class Quaternion extends ThreeQuaternion
         @z -= quat.z
         @
     
-    minus: (quat) -> @clone().sub quat
+    # minus: (quat) -> @clone().sub quat
 
     dot: (q) -> @x*q.x + @y*q.y + @z*q.z + @w*q.w
 
@@ -149,12 +149,12 @@ class Quaternion extends ThreeQuaternion
         @z = -@z
         @ 
         
-    getNormal:     -> @clone().normalize()
-    getConjugate:  -> @clone().conjugate()
-    getInverse:    -> @clone().invert()
-    neg:           -> new Quaternion -@w,-@x,-@y,-@z
-    vector:        -> new Vector @x, @y, @z
-    length:        -> Math.sqrt @w*@w + @x*@x + @y*@y + @z*@z
+    # getNormal:     -> @clone().normalize()
+    # getConjugate:  -> @clone().conjugate()
+    # getInverse:    -> @clone().invert()
+    # neg:           -> new Quaternion -@w,-@x,-@y,-@z
+    # vector:        -> new Vector @x, @y, @z
+    # length:        -> Math.sqrt @w*@w + @x*@x + @y*@y + @z*@z
     eql:       (q) -> @w==q.w and @x=q.x and @y==q.y and @z==q.z
     
     mul: (quatOrScalar) ->
@@ -168,13 +168,13 @@ class Quaternion extends ThreeQuaternion
             F = (@x - @z) * (quat.x - quat.y)
             G = (@w + @y) * (quat.w - quat.z)
             H = (@w - @y) * (quat.w + quat.z)
-            new Quaternion B + (-E - F + G + H)/2,
+            Quaternion.tmp.set B + (-E - F + G + H)/2,
                            A -  (E + F + G + H)/2,
                            C +  (E - F + G - H)/2,
                            D +  (E - F - G + H)/2
         else
             f = parseFloat quatOrScalar
-            new Quaternion @w*f, @x*f, @y*f, @z*f
+            Quaternion.tmp.set @w*f, @x*f, @y*f, @z*f
 
     slerp: (quat, t) ->
 
@@ -202,7 +202,7 @@ class Quaternion extends ThreeQuaternion
             scale0 = 1.0 - t
             scale1 = t
 
-        new Quaternion scale0 * @w + scale1 * to1[3],
+        Quaternion.tmp.set scale0 * @w + scale1 * to1[3],
                        scale0 * @x + scale1 * to1[0], 
                        scale0 * @y + scale1 * to1[1],
                        scale0 * @z + scale1 * to1[2]
@@ -212,13 +212,13 @@ class Quaternion extends ThreeQuaternion
         v.normalize()
         t = deg2rad(theta)/2.0       
         s = Math.sin t 
-        (new Quaternion Math.cos(t), v.x*s, v.y*s, v.z*s).normalize()
+        (Quaternion.tmp.set Math.cos(t), v.x*s, v.y*s, v.z*s).normalize()
 
     @rotationFromEuler: (x,y,z) ->
         x = deg2rad x
         y = deg2rad y
         z = deg2rad z
-        q = new Quaternion Math.cos(x/2) * Math.cos(y/2) * Math.cos(z/2) + Math.sin(x/2) * Math.sin(y/2) * Math.sin(z/2),
+        q = Quaternion.tmp.set Math.cos(x/2) * Math.cos(y/2) * Math.cos(z/2) + Math.sin(x/2) * Math.sin(y/2) * Math.sin(z/2),
                            Math.sin(x/2) * Math.cos(y/2) * Math.cos(z/2) - Math.cos(x/2) * Math.sin(y/2) * Math.sin(z/2),
                            Math.cos(x/2) * Math.sin(y/2) * Math.cos(z/2) + Math.sin(x/2) * Math.cos(y/2) * Math.sin(z/2),
                            Math.cos(x/2) * Math.cos(y/2) * Math.sin(z/2) - Math.sin(x/2) * Math.sin(y/2) * Math.cos(z/2)

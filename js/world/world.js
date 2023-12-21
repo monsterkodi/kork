@@ -117,7 +117,6 @@ World = (function ()
             animation = list[_97_22_]
             animation(scaledDelta,this.timeSum)
         }
-        this.physics.simulate(scaledDelta,this.timeSum)
         this.player.animate(scaledDelta,delta,this.timeSum)
         return this.enemies.animate(scaledDelta,delta,this.timeSum)
     }

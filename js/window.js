@@ -1,4 +1,4 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {extend: function (c,p) {for (var k in p) { if (Object.hasOwn(p, k)) c[k] = p[k] } function ctor() { this.constructor = c; } ctor.prototype = p.prototype; c.prototype = new ctor(); c.__super__ = p.prototype; return c;}}
 
@@ -23,6 +23,7 @@ window.vec = function (x, y, z)
 
 window.quat = function (x, y, z, w)
 {
+    console.log('quat')
     return new Quaternion(x,y,z,w)
 }
 

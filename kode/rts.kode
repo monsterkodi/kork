@@ -118,6 +118,7 @@ class RTS
         new Toggle 'label'  change: (value) -> world.setLabels value
         new Toggle 'glow'   default: true change: (value) -> rts.setBloom value
         new Toggle 'fog'    default: true change: (value) -> rts.setFog value
+        new Toggle 'info'   change: (value) -> prefs.set 'info' value
         
         window.rts = @
         window.config = Config.default
@@ -372,10 +373,11 @@ class RTS
             
             # @lightAngle += delta*0.5*world.speed
             @lightShadow.target.position.copy world.player.mesh.position
-            @lightShadow.position.copy world.player.mesh.position
-            lightOffset = vec -50 -100 100
-            lightOffset.applyQuaternion Quaternion.axisAngle Vector.unitZ, @lightAngle
-            @lightShadow.position.add lightOffset
+            
+            @lightShadow.position.set -50 -100 100
+            @lightShadow.position.applyQuaternion Quaternion.axisAngle Vector.unitZ, @lightAngle
+            @lightShadow.position.add world.player.mesh.position
+            
             # @lightShadow.position.applyQuaternion Quaternion.axisAngle Vector.unitZ, angle
             @lightShadowHelper.update()   
              

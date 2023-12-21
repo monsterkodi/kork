@@ -6,11 +6,11 @@
 00     00   0000000   000   000  0000000  0000000  
 ###
 
-Landscape      = require './landscape'
-Physics        = require './physics'
-Enemies        = require '../enemy/enemies'
-Player         = require '../player/player'
-Save           = require './save'
+Landscape = require './landscape'
+Physics   = require './physics'
+Enemies   = require '../enemy/enemies'
+Player    = require '../player/player'
+Save      = require './save'
 
 function World extends Landscape
     
@@ -97,7 +97,7 @@ function World extends Landscape
         for animation in oldAnimations
             animation scaledDelta, @timeSum
         
-        @physics.simulate scaledDelta, @timeSum
+        # @physics.simulate scaledDelta, @timeSum
         
         @player.animate scaledDelta, delta, @timeSum
         

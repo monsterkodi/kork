@@ -1,4 +1,4 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}}
 
@@ -44,19 +44,13 @@ class Quaternion extends ThreeQuaternion
 
     static axisAngle (axis, angle)
     {
-        Quaternion.tmp.setFromAxisAngle(axis,deg2rad(angle))
-        return Quaternion.tmp.clone()
+        return Quaternion.tmp.setFromAxisAngle(axis,deg2rad(angle))
     }
 
     rotateAxisAngle (axis, angle)
     {
         this.multiply(Quaternion.axisAngle(axis,angle))
         return this
-    }
-
-    clone ()
-    {
-        return new Quaternion(this)
     }
 
     copy (q)
@@ -125,11 +119,6 @@ class Quaternion extends ThreeQuaternion
         return this
     }
 
-    minus (quat)
-    {
-        return this.clone().sub(quat)
-    }
-
     dot (q)
     {
         return this.x * q.x + this.y * q.y + this.z * q.z + this.w * q.w
@@ -190,36 +179,6 @@ class Quaternion extends ThreeQuaternion
         return this
     }
 
-    getNormal ()
-    {
-        return this.clone().normalize()
-    }
-
-    getConjugate ()
-    {
-        return this.clone().conjugate()
-    }
-
-    getInverse ()
-    {
-        return this.clone().invert()
-    }
-
-    neg ()
-    {
-        return new Quaternion(-this.w,-this.x,-this.y,-this.z)
-    }
-
-    vector ()
-    {
-        return new Vector(this.x,this.y,this.z)
-    }
-
-    length ()
-    {
-        return Math.sqrt(this.w * this.w + this.x * this.x + this.y * this.y + this.z * this.z)
-    }
-
     eql (q)
     {
         return this.w === q.w && (this.x = q.x && this.y === q.y && this.z === q.z)
@@ -240,12 +199,12 @@ class Quaternion extends ThreeQuaternion
             F = (this.x - this.z) * (quat.x - quat.y)
             G = (this.w + this.y) * (quat.w - quat.z)
             H = (this.w - this.y) * (quat.w + quat.z)
-            return new Quaternion(B + (-E - F + G + H) / 2,A - (E + F + G + H) / 2)
+            return Quaternion.tmp.set(B + (-E - F + G + H) / 2,A - (E + F + G + H) / 2)
         }
         else
         {
             f = parseFloat(quatOrScalar)
-            return new Quaternion(this.w * f,this.x * f,this.y * f,this.z * f)
+            return Quaternion.tmp.set(this.w * f,this.x * f,this.y * f,this.z * f)
         }
     }
 
@@ -282,7 +241,7 @@ class Quaternion extends ThreeQuaternion
             scale0 = 1.0 - t
             scale1 = t
         }
-        return new Quaternion(scale0 * this.w + scale1 * to1[3],scale0 * this.x + scale1 * to1[0])
+        return Quaternion.tmp.set(scale0 * this.w + scale1 * to1[3],scale0 * this.x + scale1 * to1[0])
     }
 
     static rotationAroundVector (theta, x, y, z)
@@ -293,7 +252,7 @@ class Quaternion extends ThreeQuaternion
         v.normalize()
         t = deg2rad(theta) / 2.0
         s = Math.sin(t)
-        return (new Quaternion(Math.cos(t),v.x * s,v.y * s,v.z * s)).normalize()
+        return (Quaternion.tmp.set(Math.cos(t),v.x * s,v.y * s,v.z * s)).normalize()
     }
 
     static rotationFromEuler (x, y, z)
@@ -303,7 +262,7 @@ class Quaternion extends ThreeQuaternion
         x = deg2rad(x)
         y = deg2rad(y)
         z = deg2rad(z)
-        q = new Quaternion(Math.cos(x / 2) * Math.cos(y / 2) * Math.cos(z / 2) + Math.sin(x / 2) * Math.sin(y / 2) * Math.sin(z / 2),Math.sin(x / 2) * Math.cos(y / 2) * Math.cos(z / 2) - Math.cos(x / 2) * Math.sin(y / 2) * Math.sin(z / 2))
+        q = Quaternion.tmp.set(Math.cos(x / 2) * Math.cos(y / 2) * Math.cos(z / 2) + Math.sin(x / 2) * Math.sin(y / 2) * Math.sin(z / 2),Math.sin(x / 2) * Math.cos(y / 2) * Math.cos(z / 2) - Math.cos(x / 2) * Math.sin(y / 2) * Math.sin(z / 2))
         return q.normalize()
     }
 }

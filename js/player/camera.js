@@ -52,26 +52,6 @@ class PlayerCamera extends THREE.PerspectiveCamera
         return this.update(1)
     }
 
-    getPosition ()
-    {
-        return vec(this.position)
-    }
-
-    getDir ()
-    {
-        return quat(this.quaternion).rotate(Vector.minusZ)
-    }
-
-    getUp ()
-    {
-        return quat(this.quaternion).rotate(Vector.unitY)
-    }
-
-    getRight ()
-    {
-        return quat(this.quaternion).rotate(Vector.unitX)
-    }
-
     del ()
     {
         return this.elem.removeEventListener('mousewheel',this.onMouseWheel)

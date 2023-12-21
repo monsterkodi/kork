@@ -1,4 +1,4 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {list: function (l) {return l != null ? typeof l.length === 'number' ? l : [] : []}}
 
@@ -43,11 +43,6 @@ class Vector extends ThreeVector
         }
     }
 
-    clone ()
-    {
-        return new Vector(this)
-    }
-
     copy (v)
     {
         var _39_17_
@@ -56,35 +51,6 @@ class Vector extends ThreeVector
         this.y = v.y
         this.z = ((_39_17_=v.z) != null ? _39_17_ : 0)
         return this
-    }
-
-    parallel (n)
-    {
-        var dot
-
-        dot = this.x * n.x + this.y * n.y + this.z * n.z
-        return new Vector(dot * n.x,dot * n.y,dot * n.z)
-    }
-
-    perpendicular (n)
-    {
-        var dot
-
-        dot = this.x * n.x + this.y * n.y + this.z * n.z
-        return new Vector(this.x - dot * n.x,this.y - dot * n.y,this.z - dot * n.z)
-    }
-
-    reflect (n)
-    {
-        var dot
-
-        dot = 2 * (this.x * n.x + this.y * n.y + this.z * n.z)
-        return new Vector(this.x - dot * n.x,this.y - dot * n.y,this.z - dot * n.z)
-    }
-
-    rotated (axis, angle)
-    {
-        return this.clone().rotate(axis,angle)
     }
 
     rotate (axis, angle)
@@ -98,17 +64,13 @@ class Vector extends ThreeVector
 
     crossed (v)
     {
-        return this.clone().cross(v)
+        Vector.tmp.copy(this)
+        return Vector.tmp.cross(v)
     }
 
     cross (v)
     {
         return this.crossVectors(this,v)
-    }
-
-    normal ()
-    {
-        return this.clone().normalize()
     }
 
     normalize ()
@@ -124,16 +86,6 @@ class Vector extends ThreeVector
             this.z *= l
         }
         return this
-    }
-
-    xyperp ()
-    {
-        return new Vector(-this.y,this.x)
-    }
-
-    rounded ()
-    {
-        return this.clone().round()
     }
 
     round ()
@@ -169,19 +121,6 @@ class Vector extends ThreeVector
         return this
     }
 
-    xyangle (v)
-    {
-        var otherXY, thisXY
-
-        thisXY = new Vector(this.x,this.y).normal()
-        otherXY = new Vector(v.x,v.y).normal()
-        if (thisXY.xyperp().dot(otherXY >= 0))
-        {
-            return rad2deg(Math.acos(thisXY.dot(otherXY)))
-        }
-        return -rad2deg(Math.acos(thisXY.dot(otherXY)))
-    }
-
     paris (o)
     {
         var m
@@ -213,36 +152,6 @@ class Vector extends ThreeVector
     {
         Vector.tmp.copy(this)
         return Vector.tmp.sub(o).length()
-    }
-
-    mul (f)
-    {
-        return new Vector(this.x * f,this.y * f,this.z * f)
-    }
-
-    div (d)
-    {
-        return new Vector(this.x / d,this.y / d,this.z / d)
-    }
-
-    plus (v)
-    {
-        return new Vector(v).add(this)
-    }
-
-    minus (v)
-    {
-        return new Vector(v).neg().add(this)
-    }
-
-    neg ()
-    {
-        return new Vector(-this.x,-this.y,-this.z)
-    }
-
-    to (v)
-    {
-        return new Vector(v).sub(this)
     }
 
     angle (v)
@@ -308,11 +217,6 @@ class Vector extends ThreeVector
         return this
     }
 
-    static random ()
-    {
-        return new Vector().randomize()
-    }
-
     static rayPlaneIntersection (rayPos, rayDirection, planePos, planeNormal)
     {
         var x
@@ -324,31 +228,6 @@ class Vector extends ThreeVector
     static pointMappedToPlane (point, planePos, planeNormal)
     {
         return point.minus(planeNormal).dot(point.minus(planePos).dot(planeNormal))
-    }
-
-    static rayPlaneIntersectionFactor (rayPos, rayDir, planePos, planeNormal)
-    {
-        var r, rayDot
-
-        rayDot = rayDir.dot(planeNormal)
-        if (Number.isNaN(rayDot))
-        {
-            throw new Error
-        }
-        if (rayDot === 0)
-        {
-            return 2
-        }
-        r = planePos.minus(rayPos).dot(planeNormal) / rayDot
-        if (Number.isNaN(r))
-        {
-            console.log('rayPos',rayPos)
-            console.log('rayDir',rayDir)
-            console.log('planePos',planePos)
-            console.log('planeNormal',planeNormal)
-            throw new Error
-        }
-        return r
     }
 
     static PX = 0
@@ -429,9 +308,9 @@ class Vector extends ThreeVector
         Vector.tmp.normalize()
         angles = []
         var list = _k_.list(Vector.normals)
-        for (var _216_14_ = 0; _216_14_ < list.length; _216_14_++)
+        for (var _219_14_ = 0; _219_14_ < list.length; _219_14_++)
         {
-            n = list[_216_14_]
+            n = list[_219_14_]
             if (n.equals(Vector.tmp))
             {
                 return n

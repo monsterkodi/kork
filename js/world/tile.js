@@ -1,4 +1,4 @@
-// monsterkodi/kode 0.243.0
+// monsterkodi/kode 0.245.0
 
 var _k_ = {min: function () { m = Infinity; for (a of arguments) { if (Array.isArray(a)) {m = _k_.min.apply(_k_.min,[m].concat(a))} else {n = parseFloat(a); if(!isNaN(n)){m = n < m ? n : m}}}; return m }}
 
@@ -64,13 +64,13 @@ Tile = (function ()
 
         d = 0.1
         h0 = this.heightAt(x,y)
-        v0 = vec(x,y,h0)
+        v0 = Vector.tmp.set(x,y,h0)
         xp = this.heightAt(x + d,y)
         xn = this.heightAt(x - d,y)
         yp = this.heightAt(x,y + d)
         yn = this.heightAt(x,y - d)
-        vx = vec(x + d,y,xp).sub(v0)
-        vy = vec(x,y + d,yp).sub(v0)
+        vx = Vector.tmp1.set(x + d,y,xp).sub(v0)
+        vy = Vector.tmp2.set(x,y + d,yp).sub(v0)
         return vx.cross(vy).normalize()
     }
 

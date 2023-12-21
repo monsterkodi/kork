@@ -49,10 +49,10 @@ class PlayerCamera extends THREE.PerspectiveCamera
         
     setPlayer: (@player) -> @update 1
 
-    getPosition: -> vec @position
-    getDir:      -> quat(@quaternion).rotate Vector.minusZ
-    getUp:       -> quat(@quaternion).rotate Vector.unitY
-    getRight:    -> quat(@quaternion).rotate Vector.unitX
+    # getPosition: -> vec @position
+    # getDir:      -> quat(@quaternion).rotate Vector.minusZ
+    # getUp:       -> quat(@quaternion).rotate Vector.unitY
+    # getRight:    -> quat(@quaternion).rotate Vector.unitX
 
     del: =>
         
